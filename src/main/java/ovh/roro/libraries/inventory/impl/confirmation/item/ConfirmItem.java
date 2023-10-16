@@ -19,7 +19,7 @@ public class ConfirmItem implements ItemInstance<ConfirmationContext, InventoryP
     @Override
     public @NotNull ItemBuilder buildItem(@NotNull InventoryPlayerHolder player, @Nullable ConfirmationContext value) {
         return ItemBuilder.of(Material.SLIME_BALL)
-                .name(Translation.translation("core.item.confirmation.confirm.name"));
+                .name(Translation.translation("inventory.api.item.confirmation.confirm.name"));
     }
 
     @Override

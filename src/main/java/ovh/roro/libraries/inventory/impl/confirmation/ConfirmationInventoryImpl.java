@@ -40,7 +40,7 @@ public class ConfirmationInventoryImpl<T, U extends InventoryPlayerHolder> exten
 
     @Override
     public @NotNull Translation title(@NotNull U player, @Nullable ConfirmationContext<T, U> value) {
-        return Translation.translation("core.inventory.confirmation.title");
+        return Translation.translation("inventory.api.inventory.confirmation.title");
     }
 
     @Override
