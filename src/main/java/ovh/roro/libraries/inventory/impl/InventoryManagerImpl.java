@@ -59,6 +59,7 @@ import ovh.roro.libraries.inventory.impl.listener.ItemInventoryListener;
 import ovh.roro.libraries.inventory.impl.pageable.PageableInventoryImpl;
 import ovh.roro.libraries.inventory.impl.pageable.item.NextItem;
 import ovh.roro.libraries.inventory.impl.pageable.item.PreviousItem;
+import ovh.roro.libraries.inventory.util.StringUtil;
 import ovh.roro.libraries.language.api.LanguageManager;
 import ovh.roro.libraries.language.api.Translation;
 
@@ -163,7 +164,6 @@ public class InventoryManagerImpl implements InventoryManager {
             return;
         }
 
-        //noinspection OverrideOnly
         net.kyori.adventure.text.Component title = LanguageManager.languageManager().translate(player.language(), inventoryImpl.title(player, value));
 
         serverPlayer.connection.send(
@@ -396,27 +396,17 @@ public class InventoryManagerImpl implements InventoryManager {
         if (component.getContents() instanceof LiteralContents literalContents) {
             String text = literalContents.text();
             boolean endsWithNewLine = text.endsWith("\n");
-            String[] lines = text.split("\n");
+            String[] lines = StringUtil.splitNewline(text);
 
-            if (lines.length > 0) {
-                for (int i = 0; i < lines.length; i++) {
-                    String line = lines[i];
+            for (int i = 0; i < lines.length; i++) {
+                String line = lines[i];
 
-                    currentComponent = this.setOrAppend(currentComponent, Component.literal(line).withStyle(component.getStyle()));
+                currentComponent = this.setOrAppend(currentComponent, Component.literal(line).withStyle(component.getStyle()));
 
-                    if (endsWithNewLine || i != lines.length - 1) {
-                        consumer.accept(currentComponent);
-                        currentComponent = null;
-                    }
-                }
-            } else if (endsWithNewLine) {
-                if (currentComponent == null) {
-                    consumer.accept(Component.empty());
-                } else {
+                if (endsWithNewLine || i != lines.length - 1) {
                     consumer.accept(currentComponent);
+                    currentComponent = null;
                 }
-
-                currentComponent = null;
             }
         } else {
             currentComponent = this.setOrAppend(currentComponent, MutableComponent.create(component.getContents()).withStyle(component.getStyle()));
@@ -453,7 +443,7 @@ public class InventoryManagerImpl implements InventoryManager {
         return this.defaultItemFactory;
     }
 
-    public @NotNull Map<UUID, Deque<InventoryAttachment>> lastInventories() {
+    @NotNull Map<UUID, Deque<InventoryAttachment>> lastInventories() {
         return this.lastInventories;
     }
 
