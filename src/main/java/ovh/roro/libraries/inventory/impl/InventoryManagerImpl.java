@@ -31,7 +31,6 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.slf4j.LoggerFactory;
 import ovh.roro.libraries.inventory.api.ClassicInventory;
 import ovh.roro.libraries.inventory.api.ConfirmationInventory;
 import ovh.roro.libraries.inventory.api.Inventory;
