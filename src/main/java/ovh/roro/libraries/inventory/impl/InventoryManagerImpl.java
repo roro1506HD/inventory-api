@@ -13,7 +13,7 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.contents.LiteralContents;
+import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -22,9 +22,9 @@ import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
 import org.bukkit.Material;
 import org.bukkit.Server;
-import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_20_R2.event.CraftEventFactory;
-import org.bukkit.craftbukkit.v1_20_R2.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_20_R3.event.CraftEventFactory;
+import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -442,8 +442,8 @@ public class InventoryManagerImpl implements InventoryManager {
             @Nullable MutableComponent currentComponent,
             @NotNull Consumer<net.minecraft.network.chat.Component> consumer
     ) {
-        if (component.getContents() instanceof LiteralContents literalContents) {
-            String text = literalContents.text();
+        if (component.getContents() instanceof PlainTextContents contents) {
+            String text = contents.text();
             boolean endsWithNewLine = text.endsWith("\n");
             String[] lines = StringUtil.splitNewline(text);
 
