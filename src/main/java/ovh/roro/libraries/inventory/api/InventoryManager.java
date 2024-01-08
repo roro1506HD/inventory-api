@@ -2,7 +2,6 @@ package ovh.roro.libraries.inventory.api;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -28,10 +27,12 @@ import java.util.function.Function;
 public interface InventoryManager {
 
     static @NotNull InventoryManager inventoryManager() {
-        return InventoryManagerImpl.INSTANCE;
+        Class<?> callerClass = StackWalker.getInstance().getCallerClass();
+
+        return InventoryManagerImpl.getOrCreate(callerClass);
     }
 
-    void register(@NotNull JavaPlugin plugin, @NotNull Function<UUID, InventoryPlayerHolder> playerMapper);
+    void register(@NotNull Function<UUID, InventoryPlayerHolder> playerMapper);
 
     <T, U extends InventoryInstance<T, V>, V extends InventoryPlayerHolder> void openInventory(@NotNull Inventory<T, U, V> inventory, @NotNull V player, @Nullable T value);
 

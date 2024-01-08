@@ -31,6 +31,7 @@ public class InventoryWrapper<T, U extends InventoryInstance<T, V>, V extends In
 
     private static final @NotNull Logger LOGGER = LoggerFactory.getLogger("InventoryAPI - Wrapper");
 
+    private final @NotNull InventoryManagerImpl inventoryManager;
     private final @NotNull V player;
 
     private final @NotNull NonNullList<ItemStack> itemsCache;
@@ -41,7 +42,8 @@ public class InventoryWrapper<T, U extends InventoryInstance<T, V>, V extends In
     private boolean viewing;
     private boolean softClose;
 
-    public InventoryWrapper(@NotNull V player, @NotNull InventoryImpl<T, U, V> inventory, @Nullable T value) {
+    public InventoryWrapper(@NotNull InventoryManagerImpl inventoryManager, @NotNull V player, @NotNull InventoryImpl<T, U, V> inventory, @Nullable T value) {
+        this.inventoryManager = inventoryManager;
         this.player = player;
 
         this.itemsCache = NonNullList.withSize(inventory.rows() * 9, ItemStack.EMPTY);
@@ -87,7 +89,7 @@ public class InventoryWrapper<T, U extends InventoryInstance<T, V>, V extends In
 
         if (slot.hash() != this.hash[i]) {
             try {
-                ItemStack stack = InventoryManagerImpl.INSTANCE.toMinecraftStack(this.player, slot.createItem(this.player, this.value), slot.item());
+                ItemStack stack = this.inventoryManager.toMinecraftStack(this.player, slot.createItem(this.player, this.value), slot.item());
 
                 this.itemsCache.set(i, Objects.requireNonNullElse(stack, ItemStack.EMPTY));
                 this.hash[i] = slot.hash();
@@ -174,10 +176,10 @@ public class InventoryWrapper<T, U extends InventoryInstance<T, V>, V extends In
             return;
         }
 
-        Deque<InventoryAttachment> queue = InventoryManagerImpl.INSTANCE.lastInventories().get(human.getUniqueId());
+        Deque<InventoryAttachment> queue = this.inventoryManager.lastInventories().get(human.getUniqueId());
 
         if (queue != null && !queue.isEmpty() && queue.getLast().inventory().equals(this.inventory)) {
-            InventoryManagerImpl.INSTANCE.lastInventories().remove(human.getUniqueId());
+            this.inventoryManager.lastInventories().remove(human.getUniqueId());
         }
 
         this.inventory.closeHandler().ifPresent(handler -> {

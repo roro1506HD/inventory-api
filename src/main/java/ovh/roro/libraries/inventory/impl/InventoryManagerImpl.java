@@ -2,8 +2,10 @@ package ovh.roro.libraries.inventory.impl;
 
 import com.google.common.base.Preconditions;
 import io.papermc.paper.adventure.PaperAdventure;
+import io.papermc.paper.plugin.provider.classloader.ConfiguredPluginClassLoader;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import net.minecraft.Util;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -18,7 +20,6 @@ import net.minecraft.world.Container;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer;
@@ -80,7 +81,8 @@ import java.util.function.Function;
 @SuppressWarnings("rawtypes")
 public class InventoryManagerImpl implements InventoryManager {
 
-    public static final @NotNull InventoryManagerImpl INSTANCE = new InventoryManagerImpl();
+    private static final @NotNull Map<JavaPlugin, InventoryManagerImpl> MANAGERS_BY_PLUGIN = new Object2ObjectArrayMap<>();
+    private static final @NotNull Map<Class<?>, InventoryManagerImpl> MANAGERS_BY_CLASS = new Object2ObjectArrayMap<>();
 
     private static final @NotNull Int2ObjectMap<MenuType<?>> ROWS_TO_MENU_TYPE = Util.make(new Int2ObjectArrayMap<>(), map -> {
         map.defaultReturnValue(null);
@@ -94,6 +96,7 @@ public class InventoryManagerImpl implements InventoryManager {
     });
 
     private final @NotNull Server server;
+    private final @NotNull JavaPlugin plugin;
 
     private final @NotNull AtomicInteger itemIdCounter;
     private final @NotNull Int2ObjectMap<Item> itemById;
@@ -107,8 +110,9 @@ public class InventoryManagerImpl implements InventoryManager {
     private boolean registered;
     private @MonotonicNonNull Function<UUID, InventoryPlayerHolder> playerMapper;
 
-    private InventoryManagerImpl() {
-        this.server = Bukkit.getServer();
+    private InventoryManagerImpl(@NotNull JavaPlugin plugin) {
+        this.server = plugin.getServer();
+        this.plugin = plugin;
 
         this.itemIdCounter = new AtomicInteger(0);
         this.itemById = new Int2ObjectArrayMap<>();
@@ -117,16 +121,60 @@ public class InventoryManagerImpl implements InventoryManager {
         this.defaultItemFactory = new DefaultItemFactoryImpl(this);
     }
 
+    public static @NotNull InventoryManagerImpl getOrCreate(Class<?> callerClass) {
+        InventoryManagerImpl existingManager = InventoryManagerImpl.MANAGERS_BY_CLASS.get(callerClass);
+
+        if (existingManager != null) {
+            return existingManager;
+        }
+
+        JavaPlugin plugin = InventoryManagerImpl.getPluginFromClass(callerClass);
+
+        existingManager = InventoryManagerImpl.MANAGERS_BY_PLUGIN.get(plugin);
+
+        // Plugin has manager but class don't
+        if (existingManager != null) {
+            InventoryManagerImpl.MANAGERS_BY_CLASS.put(callerClass, existingManager);
+
+            return existingManager;
+        }
+
+        // Neither plugin nor class has manager, create it
+        InventoryManagerImpl manager = new InventoryManagerImpl(plugin);
+
+        InventoryManagerImpl.MANAGERS_BY_PLUGIN.put(plugin, manager);
+        InventoryManagerImpl.MANAGERS_BY_CLASS.put(callerClass, manager);
+
+        return manager;
+    }
+
+    @SuppressWarnings("UnstableApiUsage")
+    private static @NotNull JavaPlugin getPluginFromClass(Class<?> callerClass) {
+        ClassLoader classLoader = callerClass.getClassLoader();
+
+        if (!(classLoader instanceof ConfiguredPluginClassLoader pluginClassLoader)) {
+            throw new IllegalStateException(callerClass.getName() + " tried to get its InventoryManager but is not in any JavaPlugin classloader");
+        }
+
+        JavaPlugin plugin = pluginClassLoader.getPlugin();
+
+        if (plugin == null) {
+            throw new IllegalStateException(callerClass.getName() + " tried to get its InventoryManager too early");
+        }
+
+        return plugin;
+    }
+
     @Override
-    public void register(@NotNull JavaPlugin plugin, @NotNull Function<UUID, InventoryPlayerHolder> playerMapper) {
-        Preconditions.checkArgument(!this.registered, "InventoryManager already registered");
+    public void register(@NotNull Function<UUID, InventoryPlayerHolder> playerMapper) {
+        Preconditions.checkArgument(!this.registered, this.plugin.getName() + "'s InventoryManager already registered");
 
         this.registered = true;
         this.playerMapper = Objects.requireNonNull(playerMapper);
 
-        this.server.getPluginManager().registerEvents(new ItemDropListener(this), plugin);
-        this.server.getPluginManager().registerEvents(new ItemInteractListener(this), plugin);
-        this.server.getPluginManager().registerEvents(new ItemInventoryListener(this), plugin);
+        this.server.getPluginManager().registerEvents(new ItemDropListener(this), this.plugin);
+        this.server.getPluginManager().registerEvents(new ItemInteractListener(this), this.plugin);
+        this.server.getPluginManager().registerEvents(new ItemInventoryListener(this), this.plugin);
     }
 
     @SuppressWarnings("unchecked")
@@ -140,7 +188,7 @@ public class InventoryManagerImpl implements InventoryManager {
             throw new IllegalArgumentException("Cannot open inventory of " + rows + " rows");
         }
 
-        InventoryWrapper<T, U, V> wrapper = new InventoryWrapper<>(player, inventoryImpl, value);
+        InventoryWrapper<T, U, V> wrapper = new InventoryWrapper<>(this, player, inventoryImpl, value);
         ServerPlayer serverPlayer = ((CraftPlayer) player.bukkitPlayer()).getHandle();
 
         wrapper.inventory().ensureIsBuilt();
@@ -274,6 +322,7 @@ public class InventoryManagerImpl implements InventoryManager {
         return this.parseItem(CraftItemStack.asNMSCopy(itemStack));
     }
 
+    @SuppressWarnings("DataFlowIssue")
     @Override
     public @NotNull Optional<@NotNull Item> parseItem(@Nullable net.minecraft.world.item.ItemStack itemStack) {
         if (itemStack == null || !itemStack.hasTag() || !itemStack.getTag().contains("inventory_api_item", Tag.TAG_INT)) {
