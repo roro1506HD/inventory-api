@@ -4,6 +4,7 @@ import org.bukkit.Material;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import ovh.roro.libraries.inventory.api.InventoryManager;
 import ovh.roro.libraries.inventory.api.InventoryPlayerHolder;
 import ovh.roro.libraries.inventory.api.context.PaginationContext;
 import ovh.roro.libraries.inventory.api.item.ItemBuilder;
@@ -68,8 +69,8 @@ public interface PageableInventoryInstance<T, U, V extends InventoryPlayerHolder
         return 0;
     }
 
-    default @NotNull ItemBuilder previousItemBuilder(int previousPage, int maxPage) {
-        return ItemBuilder.of(Material.ARROW)
+    default @NotNull ItemBuilder previousItemBuilder(@NotNull InventoryManager inventoryManager, int previousPage, int maxPage) {
+        return inventoryManager.createItemBuilder(Material.ARROW)
                 .name(Translation.translation(
                         "inventory.api.item.pagination.previous.name",
                         Placeholder.number("previous_page", previousPage),
@@ -85,8 +86,8 @@ public interface PageableInventoryInstance<T, U, V extends InventoryPlayerHolder
         return 0;
     }
 
-    default @NotNull ItemBuilder nextItemBuilder(int nextPage, int maxPage) {
-        return ItemBuilder.of(Material.ARROW)
+    default @NotNull ItemBuilder nextItemBuilder(@NotNull InventoryManager inventoryManager, int nextPage, int maxPage) {
+        return inventoryManager.createItemBuilder(Material.ARROW)
                 .name(Translation.translation(
                         "inventory.api.item.pagination.next.name",
                         Placeholder.number("next_page", nextPage),

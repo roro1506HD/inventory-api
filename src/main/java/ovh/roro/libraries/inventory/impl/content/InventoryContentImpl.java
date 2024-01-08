@@ -21,6 +21,8 @@ import java.util.function.BiFunction;
 @SuppressWarnings("rawtypes")
 public class InventoryContentImpl<T, U extends InventoryPlayerHolder> implements InventoryContent<T, U> {
 
+    protected final @NotNull InventoryManager inventoryManager;
+
     protected final @NotNull InventoryImpl<T, ?, U> inventory;
 
     protected @Nullable Layout layout;
@@ -28,7 +30,9 @@ public class InventoryContentImpl<T, U extends InventoryPlayerHolder> implements
 
     protected final @NotNull Slot @NotNull [] slots;
 
-    public InventoryContentImpl(@NotNull InventoryImpl<T, ?, U> inventory) {
+    public InventoryContentImpl(@NotNull InventoryManager inventoryManager, @NotNull InventoryImpl<T, ?, U> inventory) {
+        this.inventoryManager = inventoryManager;
+
         this.inventory = inventory;
 
         this.slots = new Slot[inventory.rows() * 9];
@@ -62,7 +66,7 @@ public class InventoryContentImpl<T, U extends InventoryPlayerHolder> implements
     @SuppressWarnings({"ConstantConditions", "unchecked"})
     @Override
     public void item(int index, @Nullable ItemInstance item) {
-        this.item(index, InventoryManager.inventoryManager().createItem(item));
+        this.item(index, this.inventoryManager.createItem(item));
     }
 
     @Override
@@ -73,7 +77,7 @@ public class InventoryContentImpl<T, U extends InventoryPlayerHolder> implements
     @SuppressWarnings({"ConstantConditions", "unchecked"})
     @Override
     public void item(int x, int y, @Nullable ItemInstance item) {
-        this.item(x, y, InventoryManager.inventoryManager().createItem(item));
+        this.item(x, y, this.inventoryManager.createItem(item));
     }
 
     @SuppressWarnings("unchecked")

@@ -59,6 +59,7 @@ import ovh.roro.libraries.inventory.impl.pageable.PageableInventoryImpl;
 import ovh.roro.libraries.inventory.impl.pageable.item.NextItem;
 import ovh.roro.libraries.inventory.impl.pageable.item.PreviousItem;
 import ovh.roro.libraries.inventory.util.StringUtil;
+//import ovh.roro.libraries.language.api.LanguageManager;
 import ovh.roro.libraries.language.api.LanguageManager;
 import ovh.roro.libraries.language.api.Translation;
 import ovh.roro.libraries.language.util.LibraryInstanceLoader;
@@ -98,6 +99,7 @@ public class InventoryManagerImpl implements InventoryManager {
 
     private final @NotNull Server server;
     private final @NotNull JavaPlugin plugin;
+    private final @NotNull LanguageManager languageManager;
 
     private final @NotNull AtomicInteger itemIdCounter;
     private final @NotNull Int2ObjectMap<Item> itemById;
@@ -114,6 +116,7 @@ public class InventoryManagerImpl implements InventoryManager {
     private InventoryManagerImpl(@NotNull JavaPlugin plugin) {
         this.server = plugin.getServer();
         this.plugin = plugin;
+        this.languageManager = LanguageManager.languageManager();
 
         this.itemIdCounter = new AtomicInteger(0);
         this.itemById = new Int2ObjectArrayMap<>();
@@ -169,7 +172,7 @@ public class InventoryManagerImpl implements InventoryManager {
             return;
         }
 
-        net.kyori.adventure.text.Component title = LanguageManager.languageManager().translate(player.language(), inventoryImpl.title(player, value));
+        net.kyori.adventure.text.Component title = this.languageManager.translate(player.language(), inventoryImpl.title(player, value));
 
         serverPlayer.connection.send(
                 new ClientboundOpenScreenPacket(
@@ -291,7 +294,7 @@ public class InventoryManagerImpl implements InventoryManager {
 
     @Override
     public @NotNull <T, U extends InventoryPlayerHolder> ClassicInventory<T, U> createInventory(@NotNull ClassicInventoryInstance<T, U> inventoryInstance) {
-        return new ClassicInventoryImpl<>(inventoryInstance);
+        return new ClassicInventoryImpl<>(this, inventoryInstance);
     }
 
     @Override
@@ -301,12 +304,12 @@ public class InventoryManagerImpl implements InventoryManager {
 
     @Override
     public @NotNull <T, U extends InventoryPlayerHolder> ConfirmationInventory<T, U> createConfirmationInventory(@NotNull ConfirmationInventoryInstance<T, U> inventoryInstance) {
-        return new ConfirmationInventoryImpl<>(inventoryInstance);
+        return new ConfirmationInventoryImpl<>(this, inventoryInstance);
     }
 
     @Override
     public <T, U extends InventoryPlayerHolder> @NotNull Item<T, U> createItem(@NotNull ItemInstance<T, U> itemInstance) {
-        ItemImpl<T, U> item = new ItemImpl<>(itemInstance, this.itemIdCounter.incrementAndGet());
+        ItemImpl<T, U> item = new ItemImpl<>(this, itemInstance, this.itemIdCounter.incrementAndGet());
 
         this.itemById.put(item.id(), item);
 
@@ -315,7 +318,7 @@ public class InventoryManagerImpl implements InventoryManager {
 
     @Override
     public @NotNull StaticItem createStaticItem(@NotNull StaticItemInstance itemInstance) {
-        StaticItemImpl item = new StaticItemImpl(itemInstance, this.itemIdCounter.incrementAndGet());
+        StaticItemImpl item = new StaticItemImpl(this, itemInstance, this.itemIdCounter.incrementAndGet());
 
         this.itemById.put(item.id(), item);
 
@@ -361,7 +364,7 @@ public class InventoryManagerImpl implements InventoryManager {
 
         Translation name = clonedBuilder.name();
         if (name != null) {
-            display.putString("Name", this.removeDefaultItalicAndSerialize(PaperAdventure.asVanilla(LanguageManager.languageManager().translate(player.language(), name))));
+            display.putString("Name", this.removeDefaultItalicAndSerialize(PaperAdventure.asVanilla(this.languageManager.translate(player.language(), name))));
             changedDisplay = true;
         }
 
@@ -370,7 +373,7 @@ public class InventoryManagerImpl implements InventoryManager {
             ListTag lore = new ListTag();
 
             for (Translation translation : description) {
-                net.kyori.adventure.text.Component translatedComponent = LanguageManager.languageManager().translate(player.language(), translation);
+                net.kyori.adventure.text.Component translatedComponent = this.languageManager.translate(player.language(), translation);
 
                 Component lastComponent = this.splitAndCollectNewlines(PaperAdventure.asVanilla(translatedComponent), null, component -> {
                     lore.add(StringTag.valueOf(this.removeDefaultItalicAndSerialize(component)));

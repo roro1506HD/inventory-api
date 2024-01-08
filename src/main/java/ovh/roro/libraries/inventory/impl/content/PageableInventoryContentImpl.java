@@ -3,6 +3,7 @@ package ovh.roro.libraries.inventory.impl.content;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import ovh.roro.libraries.inventory.api.InventoryManager;
 import ovh.roro.libraries.inventory.api.InventoryPlayerHolder;
 import ovh.roro.libraries.inventory.api.instance.PageableInventoryInstance;
 import ovh.roro.libraries.inventory.api.slot.Slot;
@@ -16,8 +17,8 @@ public class PageableInventoryContentImpl<T, U extends InventoryPlayerHolder> ex
 
     private @MonotonicNonNull PageableInventoryInstance inventoryInstance;
 
-    public PageableInventoryContentImpl(@NotNull InventoryImpl<T, ?, U> inventory) {
-        super(inventory);
+    public PageableInventoryContentImpl(@NotNull InventoryManager inventoryManager, @NotNull InventoryImpl<T, ?, U> inventory) {
+        super(inventoryManager, inventory);
     }
 
     @Override

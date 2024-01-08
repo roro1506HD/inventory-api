@@ -17,8 +17,12 @@ import java.util.List;
 @ApiStatus.Internal
 public class ClassicInventoryImpl<T, U extends InventoryPlayerHolder> extends InventoryImpl<T, ClassicInventoryInstance<T, U>, U> implements ClassicInventory<T, U> {
 
-    public ClassicInventoryImpl(@NotNull ClassicInventoryInstance<T, U> inventoryInstance) {
-        super(inventoryInstance, InventoryContentImpl::new);
+    private final @NotNull InventoryManager inventoryManager;
+
+    public ClassicInventoryImpl(@NotNull InventoryManager inventoryManager, @NotNull ClassicInventoryInstance<T, U> inventoryInstance) {
+        super(inventoryInstance, inventory -> new InventoryContentImpl<>(inventoryManager, inventory));
+
+        this.inventoryManager = inventoryManager;
     }
 
     @Override
@@ -28,7 +32,7 @@ public class ClassicInventoryImpl<T, U extends InventoryPlayerHolder> extends In
 
     @Override
     public @NotNull List<U> viewers() {
-        return InventoryManager.inventoryManager().getInventoryViewers(this);
+        return this.inventoryManager.getInventoryViewers(this);
     }
 
     @Override
@@ -62,6 +66,6 @@ public class ClassicInventoryImpl<T, U extends InventoryPlayerHolder> extends In
 
     @Override
     public void open(@NotNull U player, @Nullable T value) {
-        InventoryManager.inventoryManager().openInventory(this, player, value);
+        this.inventoryManager.openInventory(this, player, value);
     }
 }

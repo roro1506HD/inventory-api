@@ -6,6 +6,7 @@ import com.google.common.cache.LoadingCache;
 import org.bukkit.Material;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
+import ovh.roro.libraries.inventory.api.InventoryManager;
 import ovh.roro.libraries.inventory.api.item.Item;
 import ovh.roro.libraries.inventory.api.item.ItemBuilder;
 import ovh.roro.libraries.inventory.api.item.StaticItem;
@@ -16,10 +17,14 @@ import ovh.roro.libraries.language.api.Translation;
 @ApiStatus.Internal
 public class DefaultItemFactoryImpl implements DefaultItemFactory {
 
+    private final @NotNull InventoryManager inventoryManager;
+
     private final @NotNull LoadingCache<Material, StaticItem> separatorsCache;
     private final @NotNull Item<Object, ?> backItem;
 
     public DefaultItemFactoryImpl(@NotNull InventoryManagerImpl inventoryManager) {
+        this.inventoryManager = inventoryManager;
+
         this.separatorsCache = this.createSeparatorsCache();
         this.backItem = inventoryManager.createItem(new BackItem(inventoryManager));
     }
@@ -29,8 +34,8 @@ public class DefaultItemFactoryImpl implements DefaultItemFactory {
                 .build(new CacheLoader<>() {
                     @Override
                     public StaticItem load(Material material) throws Exception {
-                        return StaticItem.of(
-                                ItemBuilder.of(material).name(Translation.translation(" "))
+                        return DefaultItemFactoryImpl.this.inventoryManager.createStaticItem(
+                                () -> DefaultItemFactoryImpl.this.inventoryManager.createItemBuilder(material).name(Translation.translation(" "))
                         );
                     }
                 });

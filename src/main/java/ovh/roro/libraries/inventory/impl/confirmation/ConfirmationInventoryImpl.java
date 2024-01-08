@@ -8,7 +8,6 @@ import ovh.roro.libraries.inventory.api.InventoryManager;
 import ovh.roro.libraries.inventory.api.InventoryPlayerHolder;
 import ovh.roro.libraries.inventory.api.context.ConfirmationContext;
 import ovh.roro.libraries.inventory.api.instance.ConfirmationInventoryInstance;
-import ovh.roro.libraries.inventory.api.item.defaults.DefaultItems;
 import ovh.roro.libraries.inventory.api.layout.Layout;
 import ovh.roro.libraries.inventory.api.slot.SlotType;
 import ovh.roro.libraries.inventory.impl.InventoryImpl;
@@ -24,8 +23,12 @@ import java.util.List;
 @ApiStatus.Internal
 public class ConfirmationInventoryImpl<T, U extends InventoryPlayerHolder> extends InventoryImpl<ConfirmationContext<T, U>, ConfirmationInventoryInstance<T, U>, U> implements ConfirmationInventory<T, U> {
 
-    public ConfirmationInventoryImpl(@NotNull ConfirmationInventoryInstance<T, U> inventoryInstance) {
-        super(inventoryInstance, InventoryContentImpl::new);
+    private final @NotNull InventoryManager inventoryManager;
+
+    public ConfirmationInventoryImpl(@NotNull InventoryManager inventoryManager, @NotNull ConfirmationInventoryInstance<T, U> inventoryInstance) {
+        super(inventoryInstance, inventory -> new InventoryContentImpl<>(inventoryManager, inventory));
+
+        this.inventoryManager = inventoryManager;
     }
 
     @Override
@@ -35,7 +38,7 @@ public class ConfirmationInventoryImpl<T, U extends InventoryPlayerHolder> exten
 
     @Override
     public @NotNull List<U> viewers() {
-        return InventoryManager.inventoryManager().getInventoryViewers(this);
+        return this.inventoryManager.getInventoryViewers(this);
     }
 
     @Override
@@ -60,11 +63,11 @@ public class ConfirmationInventoryImpl<T, U extends InventoryPlayerHolder> exten
 
     @Override
     public void buildInventory() {
-        this.inventoryContent.item(3, 3, new ConfirmItem());
-        this.inventoryContent.item(5, 3, new CancelItem());
+        this.inventoryContent.item(3, 3, new ConfirmItem(this.inventoryManager));
+        this.inventoryContent.item(5, 3, new CancelItem(this.inventoryManager));
         this.inventoryContent.item(4, 1, new PreviewItem());
 
-        this.inventoryContent.layout(Layout.OUTLINE, DefaultItems.separator(this.inventoryInstance.layoutMaterial()));
+        this.inventoryContent.layout(Layout.OUTLINE, this.inventoryManager.defaultItemFactory().separator(this.inventoryInstance.layoutMaterial()));
     }
 
     @Override
@@ -73,6 +76,6 @@ public class ConfirmationInventoryImpl<T, U extends InventoryPlayerHolder> exten
 
     @Override
     public void openConfirmation(@NotNull U player, @NotNull T value) {
-        InventoryManager.inventoryManager().openInventory(this, player, new ConfirmationContextImpl<>(this.inventoryInstance, value));
+        this.inventoryManager.openInventory(this, player, new ConfirmationContextImpl<>(this.inventoryInstance, value));
     }
 }

@@ -16,17 +16,20 @@ import ovh.roro.libraries.language.api.Translation;
 @SuppressWarnings("rawtypes")
 public class CancelItem implements ItemInstance<ConfirmationContext, InventoryPlayerHolder>, ItemClickHandler<ConfirmationContext, InventoryPlayerHolder> {
 
-    public CancelItem() {
+    private final @NotNull InventoryManager inventoryManager;
+
+    public CancelItem(@NotNull InventoryManager inventoryManager) {
+        this.inventoryManager = inventoryManager;
     }
 
     @Override
     public @NotNull ItemBuilder buildItem(@NotNull InventoryPlayerHolder player, @Nullable ConfirmationContext value) {
-        return ItemBuilder.of(Material.BARRIER)
+        return this.inventoryManager.createItemBuilder(Material.BARRIER)
                 .name(Translation.translation("inventory.api.item.confirmation.cancel.name"));
     }
 
     @Override
     public void onClick(@NotNull InventoryPlayerHolder player, boolean isShiftClick, @Nullable ConfirmationContext value) {
-        InventoryManager.inventoryManager().openPreviousInventory(player);
+        this.inventoryManager.openPreviousInventory(player);
     }
 }

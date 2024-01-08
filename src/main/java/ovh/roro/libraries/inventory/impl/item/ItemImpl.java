@@ -23,20 +23,24 @@ import java.util.Optional;
 @ApiStatus.Internal
 public class ItemImpl<T, U extends InventoryPlayerHolder> implements Item<T, U> {
 
+    private final @NotNull InventoryManager inventoryManager;
+
     private final @NotNull ItemInstance<T, U> itemInstance;
     private final int id;
 
-    private final ItemDropHandler<U> dropHandler;
-    private final ItemInventoryDropHandler<T, U> inventoryDropHandler;
+    private final @Nullable ItemDropHandler<U> dropHandler;
+    private final @Nullable ItemInventoryDropHandler<T, U> inventoryDropHandler;
 
-    private final ItemLeftClickHandler<T, U> leftClickHandler;
-    private final ItemRightClickHandler<T, U> rightClickHandler;
+    private final @Nullable ItemLeftClickHandler<T, U> leftClickHandler;
+    private final @Nullable ItemRightClickHandler<T, U> rightClickHandler;
 
-    private final ItemInteractLeftClickHandler<U> interactLeftClickHandler;
-    private final ItemInteractRightClickHandler<U> interactRightClickHandler;
+    private final @Nullable ItemInteractLeftClickHandler<U> interactLeftClickHandler;
+    private final @Nullable ItemInteractRightClickHandler<U> interactRightClickHandler;
 
     @SuppressWarnings("unchecked")
-    public ItemImpl(@NotNull ItemInstance<T, U> itemInstance, int id) {
+    public ItemImpl(@NotNull InventoryManager inventoryManager, @NotNull ItemInstance<T, U> itemInstance, int id) {
+        this.inventoryManager = inventoryManager;
+
         this.itemInstance = itemInstance;
         this.id = id;
 
@@ -50,8 +54,7 @@ public class ItemImpl<T, U extends InventoryPlayerHolder> implements Item<T, U> 
         this.interactRightClickHandler = this.handler(ItemInteractRightClickHandler.class);
     }
 
-    @Nullable
-    private <V> V handler(@NotNull Class<V> clazz) {
+    private <V> @Nullable V handler(@NotNull Class<V> clazz) {
         if (clazz.isInstance(this.itemInstance)) {
             return clazz.cast(this.itemInstance);
         }
@@ -76,7 +79,7 @@ public class ItemImpl<T, U extends InventoryPlayerHolder> implements Item<T, U> 
 
     @Override
     public @NotNull net.minecraft.world.item.ItemStack asMinecraftItem(@NotNull U player, @Nullable T value) {
-        return InventoryManager.inventoryManager().toMinecraftStack(this, player, value);
+        return this.inventoryManager.toMinecraftStack(this, player, value);
     }
 
     @Override

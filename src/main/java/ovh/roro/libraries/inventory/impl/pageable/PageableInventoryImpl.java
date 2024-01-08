@@ -24,7 +24,7 @@ public class PageableInventoryImpl<T, U, V extends InventoryPlayerHolder> extend
     private final @NotNull InventoryManagerImpl inventoryManager;
 
     public PageableInventoryImpl(@NotNull InventoryManagerImpl inventoryManager, @NotNull PageableInventoryInstance<T, U, V> inventoryInstance) {
-        super(inventoryInstance, PageableInventoryContentImpl::new);
+        super(inventoryInstance, inventory -> new PageableInventoryContentImpl<>(inventoryManager, inventory));
 
         this.inventoryManager = inventoryManager;
     }

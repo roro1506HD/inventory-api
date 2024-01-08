@@ -21,12 +21,12 @@ import ovh.roro.libraries.inventory.impl.pageable.PageableInventoryImpl;
 @SuppressWarnings("rawtypes")
 public class NextItem implements ItemInstance<PaginationContext, InventoryPlayerHolder>, ItemClickHandler<PaginationContext, InventoryPlayerHolder> {
 
-    private static final ItemBuilder AIR = ItemBuilder.of(Material.AIR);
-
     private final @NotNull InventoryManager inventoryManager;
+    private final @NotNull ItemBuilder air;
 
     public NextItem(@NotNull InventoryManager inventoryManager) {
         this.inventoryManager = inventoryManager;
+        this.air = inventoryManager.createItemBuilder(Material.AIR);
     }
 
     @SuppressWarnings({"unchecked", "ConstantConditions"})
@@ -40,13 +40,13 @@ public class NextItem implements ItemInstance<PaginationContext, InventoryPlayer
             Layout layout = content.layout();
 
             if (layout == null || !ArrayUtils.contains(layout.slots(inventory.instance().rows() * 9), inventory.instance().nextItemSlot())) {
-                return NextItem.AIR;
+                return this.air;
             }
 
             return content.layoutItem().instance().buildItem(player, null);
         }
 
-        return ((PageableInventoryInstance) value.inventory().instance()).nextItemBuilder(value.currentPage() + 2, value.maxPage());
+        return ((PageableInventoryInstance) value.inventory().instance()).nextItemBuilder(this.inventoryManager, value.currentPage() + 2, value.maxPage());
     }
 
     @Override

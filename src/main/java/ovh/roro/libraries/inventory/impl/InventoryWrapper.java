@@ -113,7 +113,7 @@ public class InventoryWrapper<T, U extends InventoryInstance<T, V>, V extends In
 
     @Override
     public void setItem(int slot, ItemStack itemStack) {
-        this.inventory.inventoryContent().item(slot, StaticItem.of(InventoryManager.inventoryManager().fromLegacy(itemStack)));
+        this.inventory.inventoryContent().item(slot, this.inventoryManager.createStaticItem(() -> this.inventoryManager.fromLegacy(itemStack)));
     }
 
     @Override
