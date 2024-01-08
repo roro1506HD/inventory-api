@@ -2,10 +2,8 @@ package ovh.roro.libraries.inventory.impl;
 
 import com.google.common.base.Preconditions;
 import io.papermc.paper.adventure.PaperAdventure;
-import io.papermc.paper.plugin.provider.classloader.ConfiguredPluginClassLoader;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import net.minecraft.Util;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -63,6 +61,7 @@ import ovh.roro.libraries.inventory.impl.pageable.item.PreviousItem;
 import ovh.roro.libraries.inventory.util.StringUtil;
 import ovh.roro.libraries.language.api.LanguageManager;
 import ovh.roro.libraries.language.api.Translation;
+import ovh.roro.libraries.language.util.LibraryInstanceLoader;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -81,8 +80,10 @@ import java.util.function.Function;
 @SuppressWarnings("rawtypes")
 public class InventoryManagerImpl implements InventoryManager {
 
-    private static final @NotNull Map<JavaPlugin, InventoryManagerImpl> MANAGERS_BY_PLUGIN = new Object2ObjectArrayMap<>();
-    private static final @NotNull Map<Class<?>, InventoryManagerImpl> MANAGERS_BY_CLASS = new Object2ObjectArrayMap<>();
+    public static final @NotNull LibraryInstanceLoader<InventoryManagerImpl> LOADER = new LibraryInstanceLoader<>(
+            "InventoryManager",
+            InventoryManagerImpl::new
+    );
 
     private static final @NotNull Int2ObjectMap<MenuType<?>> ROWS_TO_MENU_TYPE = Util.make(new Int2ObjectArrayMap<>(), map -> {
         map.defaultReturnValue(null);
@@ -119,50 +120,6 @@ public class InventoryManagerImpl implements InventoryManager {
         this.lastInventories = new HashMap<>();
 
         this.defaultItemFactory = new DefaultItemFactoryImpl(this);
-    }
-
-    public static @NotNull InventoryManagerImpl getOrCreate(Class<?> callerClass) {
-        InventoryManagerImpl existingManager = InventoryManagerImpl.MANAGERS_BY_CLASS.get(callerClass);
-
-        if (existingManager != null) {
-            return existingManager;
-        }
-
-        JavaPlugin plugin = InventoryManagerImpl.getPluginFromClass(callerClass);
-
-        existingManager = InventoryManagerImpl.MANAGERS_BY_PLUGIN.get(plugin);
-
-        // Plugin has manager but class don't
-        if (existingManager != null) {
-            InventoryManagerImpl.MANAGERS_BY_CLASS.put(callerClass, existingManager);
-
-            return existingManager;
-        }
-
-        // Neither plugin nor class has manager, create it
-        InventoryManagerImpl manager = new InventoryManagerImpl(plugin);
-
-        InventoryManagerImpl.MANAGERS_BY_PLUGIN.put(plugin, manager);
-        InventoryManagerImpl.MANAGERS_BY_CLASS.put(callerClass, manager);
-
-        return manager;
-    }
-
-    @SuppressWarnings("UnstableApiUsage")
-    private static @NotNull JavaPlugin getPluginFromClass(Class<?> callerClass) {
-        ClassLoader classLoader = callerClass.getClassLoader();
-
-        if (!(classLoader instanceof ConfiguredPluginClassLoader pluginClassLoader)) {
-            throw new IllegalStateException(callerClass.getName() + " tried to get its InventoryManager but is not in any JavaPlugin classloader");
-        }
-
-        JavaPlugin plugin = pluginClassLoader.getPlugin();
-
-        if (plugin == null) {
-            throw new IllegalStateException(callerClass.getName() + " tried to get its InventoryManager too early");
-        }
-
-        return plugin;
     }
 
     @Override

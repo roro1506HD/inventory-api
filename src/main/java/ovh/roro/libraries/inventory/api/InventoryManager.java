@@ -27,9 +27,7 @@ import java.util.function.Function;
 public interface InventoryManager {
 
     static @NotNull InventoryManager inventoryManager() {
-        Class<?> callerClass = StackWalker.getInstance().getCallerClass();
-
-        return InventoryManagerImpl.getOrCreate(callerClass);
+        return InventoryManagerImpl.LOADER.getOrCreate();
     }
 
     void register(@NotNull Function<UUID, InventoryPlayerHolder> playerMapper);
