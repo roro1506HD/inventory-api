@@ -1,6 +1,6 @@
 package ovh.roro.libraries.inventory.impl.listener;
 
-import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftInventory;
+import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftInventory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;

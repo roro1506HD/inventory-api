@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "ovh.roro.libraries"
-version = "1.20.4"
+version = "1.20.1"
 
 repositories {
     mavenLocal()
@@ -24,9 +24,9 @@ java {
 }
 
 dependencies {
-    paperweight.paperDevBundle("1.20.4-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.20.1-R0.1-SNAPSHOT")
 
-    api("ovh.roro.libraries:language-api:1.20.4:moj-mapped")
+    api("ovh.roro.libraries:language-api:1.20.1:moj-mapped")
 }
 
 // Configure reobfJar to run when invoking the build task

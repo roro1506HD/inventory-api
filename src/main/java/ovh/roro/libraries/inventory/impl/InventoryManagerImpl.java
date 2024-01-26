@@ -11,7 +11,7 @@ import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.contents.PlainTextContents;
+import net.minecraft.network.chat.contents.LiteralContents;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -20,9 +20,9 @@ import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
 import org.bukkit.Material;
 import org.bukkit.Server;
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_20_R3.event.CraftEventFactory;
-import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_20_R1.event.CraftEventFactory;
+import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -59,7 +59,6 @@ import ovh.roro.libraries.inventory.impl.pageable.PageableInventoryImpl;
 import ovh.roro.libraries.inventory.impl.pageable.item.NextItem;
 import ovh.roro.libraries.inventory.impl.pageable.item.PreviousItem;
 import ovh.roro.libraries.inventory.util.StringUtil;
-//import ovh.roro.libraries.language.api.LanguageManager;
 import ovh.roro.libraries.language.api.LanguageManager;
 import ovh.roro.libraries.language.api.Translation;
 import ovh.roro.libraries.language.util.LibraryInstanceLoader;
@@ -402,7 +401,7 @@ public class InventoryManagerImpl implements InventoryManager {
             @Nullable MutableComponent currentComponent,
             @NotNull Consumer<net.minecraft.network.chat.Component> consumer
     ) {
-        if (component.getContents() instanceof PlainTextContents contents) {
+        if (component.getContents() instanceof LiteralContents contents) {
             String text = contents.text();
             boolean endsWithNewLine = text.endsWith("\n");
             String[] lines = StringUtil.splitNewline(text);
