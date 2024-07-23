@@ -5,9 +5,8 @@ import io.papermc.paper.adventure.PaperAdventure;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.minecraft.Util;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
@@ -18,12 +17,13 @@ import net.minecraft.world.Container;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.item.component.ItemLore;
 import org.bukkit.Material;
-import org.bukkit.Server;
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
-import org.bukkit.craftbukkit.v1_20_R3.event.CraftEventFactory;
-import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack;
-import org.bukkit.entity.Player;
+import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.craftbukkit.event.CraftEventFactory;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -59,7 +59,6 @@ import ovh.roro.libraries.inventory.impl.pageable.PageableInventoryImpl;
 import ovh.roro.libraries.inventory.impl.pageable.item.NextItem;
 import ovh.roro.libraries.inventory.impl.pageable.item.PreviousItem;
 import ovh.roro.libraries.inventory.util.StringUtil;
-//import ovh.roro.libraries.language.api.LanguageManager;
 import ovh.roro.libraries.language.api.LanguageManager;
 import ovh.roro.libraries.language.api.Translation;
 import ovh.roro.libraries.language.util.LibraryInstanceLoader;
@@ -97,7 +96,7 @@ public class InventoryManagerImpl implements InventoryManager {
         map.put(6, MenuType.GENERIC_9x6);
     });
 
-    private final @NotNull Server server;
+    private final @NotNull CraftServer server;
     private final @NotNull JavaPlugin plugin;
     private final @NotNull LanguageManager languageManager;
 
@@ -114,7 +113,7 @@ public class InventoryManagerImpl implements InventoryManager {
     private @MonotonicNonNull Function<UUID, InventoryPlayerHolder> playerMapper;
 
     private InventoryManagerImpl(@NotNull JavaPlugin plugin) {
-        this.server = plugin.getServer();
+        this.server = (CraftServer) plugin.getServer();
         this.plugin = plugin;
         this.languageManager = LanguageManager.languageManager();
 
@@ -266,8 +265,8 @@ public class InventoryManagerImpl implements InventoryManager {
     public <T extends InventoryPlayerHolder> @NotNull List<T> getInventoryViewers(@NotNull Inventory<?, ?, T> inventory) {
         List<T> players = new ArrayList<>();
 
-        for (Player player : this.server.getOnlinePlayers()) {
-            if (((CraftPlayer) player).getHandle().containerMenu instanceof ChestMenu chestMenu &&
+        for (CraftPlayer player : this.server.getOnlinePlayers()) {
+            if (player.getHandle().containerMenu instanceof ChestMenu chestMenu &&
                     chestMenu.getContainer() instanceof InventoryWrapper<?, ?, ?> wrapper && wrapper.inventory() == inventory) {
                 //noinspection unchecked
                 players.add((T) wrapper.player());
@@ -285,11 +284,17 @@ public class InventoryManagerImpl implements InventoryManager {
     @SuppressWarnings("DataFlowIssue")
     @Override
     public @NotNull Optional<@NotNull Item> parseItem(@Nullable net.minecraft.world.item.ItemStack itemStack) {
-        if (itemStack == null || !itemStack.hasTag() || !itemStack.getTag().contains("inventory_api_item", Tag.TAG_INT)) {
+        if (itemStack == null || !itemStack.has(DataComponents.CUSTOM_DATA)) {
             return Optional.empty();
         }
 
-        return Optional.ofNullable(this.itemById.get(itemStack.getTag().getInt("inventory_api_item")));
+        CompoundTag tag = itemStack.get(DataComponents.CUSTOM_DATA).copyTag();
+
+        if (!tag.contains("inventory_api_item", Tag.TAG_INT)) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(this.itemById.get(tag.getInt("inventory_api_item")));
     }
 
     @Override
@@ -342,7 +347,7 @@ public class InventoryManagerImpl implements InventoryManager {
 
     @Override
     public @NotNull ItemBuilder fromLegacy(@NotNull net.minecraft.world.item.ItemStack itemStack) {
-        return new ItemBuilderImpl(itemStack.save(new CompoundTag()));
+        return new ItemBuilderImpl(itemStack);
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -357,44 +362,39 @@ public class InventoryManagerImpl implements InventoryManager {
         }
 
         ItemBuilderImpl clonedBuilder = (ItemBuilderImpl) builder.clone();
-        CompoundTag display = clonedBuilder.tag().getCompound("display");
-        boolean changedDisplay = false;
+        net.minecraft.world.item.ItemStack delegate = clonedBuilder.delegate();
 
-        clonedBuilder.tag().putInt("inventory_api_item", ((ItemImpl) item).id());
+        CustomData.update(DataComponents.CUSTOM_DATA, delegate, compoundTag -> {
+            compoundTag.putInt("inventory_api_item", ((ItemImpl) item).id());
+        });
 
         Translation name = clonedBuilder.name();
         if (name != null) {
-            display.putString("Name", this.removeDefaultItalicAndSerialize(PaperAdventure.asVanilla(this.languageManager.translate(player.language(), name))));
-            changedDisplay = true;
+            delegate.set(DataComponents.CUSTOM_NAME, this.removeDefaultItalic(PaperAdventure.asVanilla(this.languageManager.translate(player.language(), name))));
         }
 
         Translation[] description = clonedBuilder.description();
         if (description != null) {
-            ListTag lore = new ListTag();
+            List<Component> lore = new ArrayList<>();
 
             for (Translation translation : description) {
                 net.kyori.adventure.text.Component translatedComponent = this.languageManager.translate(player.language(), translation);
 
                 Component lastComponent = this.splitAndCollectNewlines(PaperAdventure.asVanilla(translatedComponent), null, component -> {
-                    lore.add(StringTag.valueOf(this.removeDefaultItalicAndSerialize(component)));
+                    lore.add(this.removeDefaultItalic(component));
                 });
 
                 if (lastComponent != null) {
-                    lore.add(StringTag.valueOf(this.removeDefaultItalicAndSerialize(lastComponent)));
+                    lore.add(this.removeDefaultItalic(lastComponent));
                 }
             }
 
             if (!lore.isEmpty()) {
-                display.put("Lore", lore);
-                changedDisplay = true;
+                delegate.set(DataComponents.LORE, new ItemLore(lore));
             }
         }
 
-        if (changedDisplay) {
-            clonedBuilder.tag().put("display", display);
-        }
-
-        return net.minecraft.world.item.ItemStack.of(clonedBuilder.rootTag());
+        return delegate;
     }
 
     private @Nullable MutableComponent splitAndCollectNewlines(
@@ -439,12 +439,10 @@ public class InventoryManagerImpl implements InventoryManager {
         return currentComponent.append(toAppend);
     }
 
-    private @NotNull String removeDefaultItalicAndSerialize(@NotNull Component component) {
-        return Component.Serializer.toJson(
-                Component.empty()
-                        .withStyle(style -> style.withItalic(false))
-                        .append(component)
-        );
+    private @NotNull Component removeDefaultItalic(@NotNull Component component) {
+        return Component.empty()
+                .withStyle(style -> style.withItalic(false))
+                .append(component);
     }
 
     @Override
@@ -452,7 +450,8 @@ public class InventoryManagerImpl implements InventoryManager {
         return this.defaultItemFactory;
     }
 
-    @NotNull Map<UUID, Deque<InventoryAttachment>> lastInventories() {
+    @NotNull
+    Map<UUID, Deque<InventoryAttachment>> lastInventories() {
         return this.lastInventories;
     }
 

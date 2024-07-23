@@ -1,14 +1,24 @@
 package ovh.roro.libraries.inventory.impl.item;
 
+import com.google.common.base.Preconditions;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.Tag;
+import com.mojang.authlib.properties.PropertyMap;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.util.Unit;
+import net.minecraft.world.item.AdventureModePredicate;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.armortrim.ArmorTrim;
+import net.minecraft.world.item.component.DyedItemColor;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.minecraft.world.item.component.ResolvableProfile;
+import net.minecraft.world.item.component.Unbreakable;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
+import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
@@ -19,59 +29,50 @@ import ovh.roro.libraries.inventory.api.item.ItemBuilder;
 import ovh.roro.libraries.language.api.Translation;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @ApiStatus.Internal
 public class ItemBuilderImpl implements ItemBuilder {
 
-    private final @NotNull CompoundTag rootTag;
+    private final @NotNull ItemStack delegate;
 
     private @Nullable Translation name;
     private @NotNull Translation @Nullable [] description;
 
-    public ItemBuilderImpl(@NotNull CompoundTag rootTag) {
-        this.rootTag = rootTag;
+    public ItemBuilderImpl(@NotNull ItemStack delegate) {
+        this.delegate = delegate;
     }
 
     public ItemBuilderImpl(@NotNull Material material, int amount) {
-        this(new CompoundTag());
-
-        this.material(material);
-        this.amount(amount);
-    }
-
-    @Override
-    public @NotNull ItemBuilder material(@NotNull Material material) {
-        this.rootTag.putString("id", material.getKey().toString());
-        return this;
+        this(new ItemStack(CraftMagicNumbers.getItem(material), amount));
     }
 
     @Override
     public @NotNull Material material() {
-        NamespacedKey key = Objects.requireNonNull(NamespacedKey.fromString(this.rootTag.getString("id")));
-        return Objects.requireNonNull(Registry.MATERIAL.get(key));
+        return CraftMagicNumbers.getMaterial(this.delegate.getItem());
     }
 
     @Override
     public @NotNull ItemBuilder damage(int damage) {
-        this.tag().putInt("Damage", damage);
+        this.delegate.setDamageValue(damage);
         return this;
     }
 
     @Override
-    public short damage() {
-        return this.tag().getShort("Damage");
+    public int damage() {
+        return this.delegate.getDamageValue();
     }
 
     @Override
     public @NotNull ItemBuilder amount(int amount) {
-        this.rootTag.putByte("Count", (byte) amount);
+        this.delegate.setCount(amount);
         return this;
     }
 
     @Override
     public int amount() {
-        return this.rootTag.getByte("Count");
+        return this.delegate.getCount();
     }
 
     @Override
@@ -98,106 +99,158 @@ public class ItemBuilderImpl implements ItemBuilder {
 
     @Override
     public @NotNull ItemBuilder enchant(@NotNull Enchantment enchantment, int level) {
-        CompoundTag tag = this.tag();
-
-        if (!tag.contains("Enchantments", Tag.TAG_LIST)) {
-            tag.put("Enchantments", new ListTag());
-        }
-
-        ListTag enchantList = tag.getList("Enchantments", Tag.TAG_COMPOUND);
-        CompoundTag enchant = new CompoundTag();
-
-        enchant.putString("id", enchantment.getKey().toString());
-        enchant.putShort("lvl", (short) level);
-
-        enchantList.add(enchant);
+        this.delegate.enchant(CraftEnchantment.bukkitToMinecraftHolder(enchantment), level);
         return this;
     }
 
     @Override
     public int enchant(@NotNull Enchantment enchantment) {
-        CompoundTag tag = this.tag();
-
-        if (!tag.contains("Enchantments", Tag.TAG_LIST)) {
-            return 0;
-        }
-
-        ListTag enchantList = tag.getList("Enchantments", Tag.TAG_COMPOUND);
-
-        for (Tag enchant : enchantList) {
-            CompoundTag castedEnchant = (CompoundTag) enchant;
-
-            if (castedEnchant.getString("id").equals(enchantment.getKey().toString())) {
-                return castedEnchant.getShort("lvl");
-            }
-        }
-
-        return 0;
+        return this.delegate.getEnchantments().getLevel(CraftEnchantment.bukkitToMinecraftHolder(enchantment));
     }
 
     @Override
     public @NotNull ItemBuilder flag(@NotNull ItemFlag @NotNull ... flags) {
-        CompoundTag tag = this.tag();
-        int hideFlags = tag.getInt("HideFlags");
-
         for (ItemFlag flag : flags) {
-            hideFlags |= (byte) (1 << flag.ordinal());
-        }
+            switch (flag) {
+                case HIDE_ENCHANTS -> {
+                    if (this.delegate.isEnchanted()) {
+                        this.delegate.set(DataComponents.ENCHANTMENTS, this.delegate.getEnchantments().withTooltip(false));
+                    }
+                }
+                case HIDE_ATTRIBUTES -> {
+                    ItemAttributeModifiers currentModifiers = this.delegate.get(DataComponents.ATTRIBUTE_MODIFIERS);
 
-        tag.putInt("HideFlags", hideFlags);
+                    if (currentModifiers == null) {
+                        //noinspection deprecation
+                        currentModifiers = this.delegate.getItem().getDefaultAttributeModifiers();
+
+                        if (currentModifiers == ItemAttributeModifiers.EMPTY) {
+                            break;
+                        }
+                    }
+
+                    this.delegate.set(DataComponents.ATTRIBUTE_MODIFIERS, currentModifiers.withTooltip(false));
+                }
+                case HIDE_UNBREAKABLE -> {
+                    if (this.delegate.has(DataComponents.UNBREAKABLE)) {
+                        this.delegate.set(DataComponents.UNBREAKABLE, new Unbreakable(false));
+                    }
+                }
+                case HIDE_DESTROYS -> {
+                    AdventureModePredicate predicate = this.delegate.get(DataComponents.CAN_BREAK);
+
+                    if (predicate != null) {
+                        this.delegate.set(DataComponents.CAN_BREAK, predicate.withTooltip(false));
+                    }
+                }
+                case HIDE_PLACED_ON -> {
+                    AdventureModePredicate predicate = this.delegate.get(DataComponents.CAN_PLACE_ON);
+
+                    if (predicate != null) {
+                        this.delegate.set(DataComponents.CAN_PLACE_ON, predicate.withTooltip(false));
+                    }
+                }
+                case HIDE_ADDITIONAL_TOOLTIP -> this.delegate.set(DataComponents.HIDE_ADDITIONAL_TOOLTIP, Unit.INSTANCE);
+                case HIDE_DYE -> {
+                    DyedItemColor color = this.delegate.get(DataComponents.DYED_COLOR);
+
+                    if (color != null) {
+                        this.delegate.set(DataComponents.DYED_COLOR, color.withTooltip(false));
+                    }
+                }
+                case HIDE_ARMOR_TRIM -> {
+                    ArmorTrim trim = this.delegate.get(DataComponents.TRIM);
+
+                    if (trim != null) {
+                        this.delegate.set(DataComponents.TRIM, trim.withTooltip(false));
+                    }
+                }
+                case HIDE_STORED_ENCHANTS -> {
+                    ItemEnchantments enchantments = this.delegate.get(DataComponents.STORED_ENCHANTMENTS);
+
+                    if (enchantments != null) {
+                        this.delegate.set(DataComponents.STORED_ENCHANTMENTS, enchantments.withTooltip(false));
+                    }
+                }
+            }
+        }
         return this;
     }
 
     @Override
     public boolean flag(@NotNull ItemFlag flag) {
-        CompoundTag tag = this.tag();
-        int hideFlags = tag.getInt("HideFlags");
+        return switch (flag) {
+            case HIDE_ENCHANTS -> {
+                ItemEnchantments enchantments = this.delegate.get(DataComponents.ENCHANTMENTS);
 
-        return (hideFlags & (1 << flag.ordinal())) != 0;
+                yield enchantments != null && !enchantments.showInTooltip;
+            }
+            case HIDE_ATTRIBUTES -> {
+                ItemAttributeModifiers currentModifiers = this.delegate.get(DataComponents.ATTRIBUTE_MODIFIERS);
+
+                yield currentModifiers != null && !currentModifiers.showInTooltip();
+            }
+            case HIDE_UNBREAKABLE -> {
+                Unbreakable unbreakable = this.delegate.get(DataComponents.UNBREAKABLE);
+
+                yield unbreakable != null && !unbreakable.showInTooltip();
+            }
+            case HIDE_DESTROYS -> {
+                AdventureModePredicate predicate = this.delegate.get(DataComponents.CAN_BREAK);
+
+                yield predicate != null && !predicate.showInTooltip();
+            }
+            case HIDE_PLACED_ON -> {
+                AdventureModePredicate predicate = this.delegate.get(DataComponents.CAN_PLACE_ON);
+
+                yield predicate != null && !predicate.showInTooltip();
+            }
+            case HIDE_ADDITIONAL_TOOLTIP -> this.delegate.has(DataComponents.HIDE_ADDITIONAL_TOOLTIP);
+            case HIDE_DYE -> {
+                DyedItemColor color = this.delegate.get(DataComponents.DYED_COLOR);
+
+                yield color != null && !color.showInTooltip();
+            }
+            case HIDE_ARMOR_TRIM -> {
+                ArmorTrim trim = this.delegate.get(DataComponents.TRIM);
+
+                yield trim != null && !trim.showInTooltip;
+            }
+            case HIDE_STORED_ENCHANTS -> {
+                ItemEnchantments enchantments = this.delegate.get(DataComponents.STORED_ENCHANTMENTS);
+
+                yield enchantments != null && enchantments.showInTooltip;
+            }
+        };
     }
 
     @Override
     public @NotNull ItemBuilder unbreakable(boolean unbreakable) {
-        if (unbreakable) {
-            this.tag().putBoolean("Unbreakable", true);
-        } else {
-            this.tag().remove("Unbreakable");
-        }
+        this.delegate.set(DataComponents.UNBREAKABLE, new Unbreakable(true));
 
         return this;
     }
 
     @Override
     public boolean unbreakable() {
-        return this.tag().getBoolean("Unbreakable");
+        return this.delegate.has(DataComponents.UNBREAKABLE);
     }
 
     @Override
     public @NotNull ItemBuilder glowing(boolean glowing) {
-        CompoundTag tag = this.tag();
-
-        if (glowing) {
-            if (!tag.contains("Enchantments", Tag.TAG_LIST)) {
-                tag.put("Enchantments", new ListTag());
-            }
-
-            ListTag enchantList = tag.getList("Enchantments", Tag.TAG_COMPOUND);
-            CompoundTag enchant = new CompoundTag();
-
-            enchant.putString("id", "minecraft:just_glowing");
-            enchant.putShort("lvl", (short) 1);
-
-            enchantList.add(enchant);
-        } else {
-            tag.remove("Enchantments");
-        }
+        this.delegate.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, glowing);
 
         return this;
     }
 
     @Override
     public boolean glowing() {
-        return this.tag().contains("Enchantments", Tag.TAG_LIST);
+        Boolean glint = this.delegate.get(DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
+        if (glint != null) {
+            return glint;
+        }
+
+        return this.delegate.getItem().isFoil(this.delegate);
     }
 
     @Override
@@ -213,42 +266,28 @@ public class ItemBuilderImpl implements ItemBuilder {
 
     @Override
     public @NotNull ItemBuilder skull(@NotNull String texture, @NotNull String signature) {
-        this.material(Material.PLAYER_HEAD);
+        Preconditions.checkState(this.delegate.getItem() == Items.PLAYER_HEAD, "ItemBuilder#skull can only be used on skulls");
 
-        CompoundTag skullOwner = new CompoundTag();
-        CompoundTag properties = new CompoundTag();
-        ListTag textures = new ListTag();
-        CompoundTag value = new CompoundTag();
+        PropertyMap properties = new PropertyMap();
 
-        value.putString("Value", texture);
+        properties.put("textures", new Property("textures", texture, signature));
 
-        textures.add(value);
-
-        properties.put("textures", textures);
-
-        skullOwner.putUUID("Id", UUID.randomUUID());
-        skullOwner.put("Properties", properties);
-
-        this.tag().put("SkullOwner", skullOwner);
+        this.delegate.set(
+                DataComponents.PROFILE,
+                new ResolvableProfile(
+                        Optional.empty(),
+                        Optional.of(UUID.randomUUID()),
+                        properties
+                )
+        );
 
         return this;
-    }
-
-    @Override
-    public @NotNull ItemBuilder nbt(@NotNull String key, @NotNull Tag tag) {
-        this.rootTag.put(key, tag);
-        return this;
-    }
-
-    @Override
-    public @Nullable Tag nbt(@NotNull String key) {
-        return this.rootTag.get(key);
     }
 
     @SuppressWarnings("MethodDoesntCallSuperMethod")
     @Override
     public @NotNull ItemBuilder clone() {
-        ItemBuilderImpl builder = new ItemBuilderImpl(this.rootTag.copy());
+        ItemBuilderImpl builder = new ItemBuilderImpl(this.delegate.copy());
 
         builder.name = this.name;
         builder.description = this.description;
@@ -256,19 +295,7 @@ public class ItemBuilderImpl implements ItemBuilder {
         return builder;
     }
 
-    public @NotNull CompoundTag rootTag() {
-        return this.rootTag;
-    }
-
-    public @NotNull CompoundTag tag() {
-        if (!this.rootTag.contains("tag")) {
-            CompoundTag tag = new CompoundTag();
-
-            this.rootTag.put("tag", tag);
-
-            return tag;
-        }
-
-        return this.rootTag.getCompound("tag");
+    public @NotNull ItemStack delegate() {
+        return this.delegate;
     }
 }

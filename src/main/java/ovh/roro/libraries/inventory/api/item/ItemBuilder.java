@@ -24,15 +24,12 @@ public interface ItemBuilder {
         return InventoryManager.inventoryManager().fromLegacy(itemStack);
     }
 
-    @Contract("_ -> this")
-    @NotNull ItemBuilder material(@NotNull Material material);
-
     @NotNull Material material();
 
     @Contract("_ -> this")
     @NotNull ItemBuilder damage(int damage);
 
-    short damage();
+    int damage();
 
     @Contract("_ -> this")
     @NotNull ItemBuilder amount(int amount);
@@ -54,6 +51,11 @@ public interface ItemBuilder {
 
     int enchant(@NotNull Enchantment enchantment);
 
+    /**
+     * Must be called after everything else, flags depend on other aspects of the item
+     * @param flags The flags to hide
+     * @return this
+     */
     @Contract("_ -> this")
     @NotNull ItemBuilder flag(@NotNull ItemFlag @NotNull ... flags);
 
@@ -74,11 +76,6 @@ public interface ItemBuilder {
 
     @Contract("_, _ -> this")
     @NotNull ItemBuilder skull(@NotNull String texture, @NotNull String signature);
-
-    @Contract("_, _ -> this")
-    @NotNull ItemBuilder nbt(@NotNull String key, @NotNull Tag tag);
-
-    @Nullable Tag nbt(@NotNull String key);
 
     @NotNull ItemBuilder clone();
 

@@ -1,7 +1,9 @@
 package ovh.roro.libraries.inventory.impl.item;
 
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
-import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -18,6 +20,7 @@ import ovh.roro.libraries.inventory.api.instance.ItemInstance;
 import ovh.roro.libraries.inventory.api.item.Item;
 import ovh.roro.libraries.inventory.api.item.ItemBuilder;
 
+import java.util.Objects;
 import java.util.Optional;
 
 @ApiStatus.Internal
@@ -89,7 +92,13 @@ public class ItemImpl<T, U extends InventoryPlayerHolder> implements Item<T, U> 
 
     @Override
     public boolean isSimilar(@NotNull net.minecraft.world.item.ItemStack itemStack) {
-        return itemStack.hasTag() && itemStack.getTag().contains("inventory_api_item", Tag.TAG_INT) && itemStack.getTag().getInt("inventory_api_item") == this.id;
+        if (!itemStack.has(DataComponents.CUSTOM_DATA)) {
+            return false;
+        }
+
+        CompoundTag tag = Objects.requireNonNull(itemStack.get(DataComponents.CUSTOM_DATA)).copyTag();
+
+        return tag.contains("inventory_api_item", Tag.TAG_INT) && tag.getInt("inventory_api_item") == this.id;
     }
 
     public int id() {
