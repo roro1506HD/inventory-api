@@ -62,6 +62,9 @@ public interface ItemBuilder {
     boolean flag(@NotNull ItemFlag flag);
 
     @Contract("_ -> this")
+    @NotNull ItemBuilder hideTooltip(boolean hide);
+
+    @Contract("_ -> this")
     @NotNull ItemBuilder unbreakable(boolean unbreakable);
 
     boolean unbreakable();

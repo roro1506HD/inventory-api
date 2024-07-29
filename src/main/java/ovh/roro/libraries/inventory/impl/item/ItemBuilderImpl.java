@@ -225,6 +225,17 @@ public class ItemBuilderImpl implements ItemBuilder {
     }
 
     @Override
+    public @NotNull ItemBuilder hideTooltip(boolean hide) {
+        if (hide) {
+            this.delegate.set(DataComponents.HIDE_TOOLTIP, Unit.INSTANCE);
+        } else {
+            this.delegate.remove(DataComponents.HIDE_TOOLTIP);
+        }
+
+        return this;
+    }
+
+    @Override
     public @NotNull ItemBuilder unbreakable(boolean unbreakable) {
         this.delegate.set(DataComponents.UNBREAKABLE, new Unbreakable(true));
 
