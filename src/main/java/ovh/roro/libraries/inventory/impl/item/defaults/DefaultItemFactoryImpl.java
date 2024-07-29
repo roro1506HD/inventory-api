@@ -8,7 +8,6 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import ovh.roro.libraries.inventory.api.InventoryManager;
 import ovh.roro.libraries.inventory.api.item.Item;
-import ovh.roro.libraries.inventory.api.item.ItemBuilder;
 import ovh.roro.libraries.inventory.api.item.StaticItem;
 import ovh.roro.libraries.inventory.api.item.defaults.DefaultItemFactory;
 import ovh.roro.libraries.inventory.impl.InventoryManagerImpl;
@@ -35,7 +34,9 @@ public class DefaultItemFactoryImpl implements DefaultItemFactory {
                     @Override
                     public StaticItem load(Material material) throws Exception {
                         return DefaultItemFactoryImpl.this.inventoryManager.createStaticItem(
-                                () -> DefaultItemFactoryImpl.this.inventoryManager.createItemBuilder(material).name(Translation.translation(" "))
+                                () -> DefaultItemFactoryImpl.this.inventoryManager.createItemBuilder(material)
+                                        .name(Translation.translation(" "))
+                                        .hideTooltip(true)
                         );
                     }
                 });
