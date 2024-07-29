@@ -4,6 +4,8 @@ import com.google.common.base.Preconditions;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.util.Unit;
 import net.minecraft.world.item.AdventureModePredicate;
@@ -14,6 +16,7 @@ import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.item.component.Unbreakable;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
@@ -36,12 +39,14 @@ import java.util.UUID;
 public class ItemBuilderImpl implements ItemBuilder {
 
     private final @NotNull ItemStack delegate;
+    private final @NotNull Object2BooleanMap<ItemFlag> flags;
 
     private @Nullable Translation name;
     private @NotNull Translation @Nullable [] description;
 
     public ItemBuilderImpl(@NotNull ItemStack delegate) {
         this.delegate = delegate;
+        this.flags = new Object2BooleanArrayMap<>();
     }
 
     public ItemBuilderImpl(@NotNull Material material, int amount) {
@@ -109,76 +114,29 @@ public class ItemBuilderImpl implements ItemBuilder {
     }
 
     @Override
-    public @NotNull ItemBuilder flag(@NotNull ItemFlag @NotNull ... flags) {
+    public @NotNull ItemBuilder removeEnchant(@NotNull Enchantment enchantment) {
+        EnchantmentHelper.updateEnchantments(this.delegate, mutable -> {
+            mutable.set(CraftEnchantment.bukkitToMinecraftHolder(enchantment), 0); // Level 0 removes the enchantment
+        });
+
+        return this;
+    }
+
+    @Override
+    public @NotNull ItemBuilder flags(@NotNull ItemFlag @NotNull ... flags) {
         for (ItemFlag flag : flags) {
-            switch (flag) {
-                case HIDE_ENCHANTS -> {
-                    if (this.delegate.isEnchanted()) {
-                        this.delegate.set(DataComponents.ENCHANTMENTS, this.delegate.getEnchantments().withTooltip(false));
-                    }
-                }
-                case HIDE_ATTRIBUTES -> {
-                    ItemAttributeModifiers currentModifiers = this.delegate.get(DataComponents.ATTRIBUTE_MODIFIERS);
-
-                    if (currentModifiers == null) {
-                        //noinspection deprecation
-                        currentModifiers = this.delegate.getItem().getDefaultAttributeModifiers();
-
-                        if (currentModifiers == ItemAttributeModifiers.EMPTY) {
-                            break;
-                        }
-                    }
-
-                    this.delegate.set(DataComponents.ATTRIBUTE_MODIFIERS, currentModifiers.withTooltip(false));
-                }
-                case HIDE_UNBREAKABLE -> {
-                    if (this.delegate.has(DataComponents.UNBREAKABLE)) {
-                        this.delegate.set(DataComponents.UNBREAKABLE, new Unbreakable(false));
-                    }
-                }
-                case HIDE_DESTROYS -> {
-                    AdventureModePredicate predicate = this.delegate.get(DataComponents.CAN_BREAK);
-
-                    if (predicate != null) {
-                        this.delegate.set(DataComponents.CAN_BREAK, predicate.withTooltip(false));
-                    }
-                }
-                case HIDE_PLACED_ON -> {
-                    AdventureModePredicate predicate = this.delegate.get(DataComponents.CAN_PLACE_ON);
-
-                    if (predicate != null) {
-                        this.delegate.set(DataComponents.CAN_PLACE_ON, predicate.withTooltip(false));
-                    }
-                }
-                case HIDE_ADDITIONAL_TOOLTIP -> this.delegate.set(DataComponents.HIDE_ADDITIONAL_TOOLTIP, Unit.INSTANCE);
-                case HIDE_DYE -> {
-                    DyedItemColor color = this.delegate.get(DataComponents.DYED_COLOR);
-
-                    if (color != null) {
-                        this.delegate.set(DataComponents.DYED_COLOR, color.withTooltip(false));
-                    }
-                }
-                case HIDE_ARMOR_TRIM -> {
-                    ArmorTrim trim = this.delegate.get(DataComponents.TRIM);
-
-                    if (trim != null) {
-                        this.delegate.set(DataComponents.TRIM, trim.withTooltip(false));
-                    }
-                }
-                case HIDE_STORED_ENCHANTS -> {
-                    ItemEnchantments enchantments = this.delegate.get(DataComponents.STORED_ENCHANTMENTS);
-
-                    if (enchantments != null) {
-                        this.delegate.set(DataComponents.STORED_ENCHANTMENTS, enchantments.withTooltip(false));
-                    }
-                }
-            }
+            this.flags.put(flag, true);
         }
+
         return this;
     }
 
     @Override
     public boolean flag(@NotNull ItemFlag flag) {
+        if (this.flags.containsKey(flag)) {
+            return this.flags.getBoolean(flag);
+        }
+
         return switch (flag) {
             case HIDE_ENCHANTS -> {
                 ItemEnchantments enchantments = this.delegate.get(DataComponents.ENCHANTMENTS);
@@ -222,6 +180,15 @@ public class ItemBuilderImpl implements ItemBuilder {
                 yield enchantments != null && enchantments.showInTooltip;
             }
         };
+    }
+
+    @Override
+    public @NotNull ItemBuilder removeFlags(@NotNull ItemFlag @NotNull ... flags) {
+        for (ItemFlag flag : flags) {
+            this.flags.put(flag, false);
+        }
+
+        return this;
     }
 
     @Override
@@ -296,7 +263,6 @@ public class ItemBuilderImpl implements ItemBuilder {
     }
 
     @SuppressWarnings("MethodDoesntCallSuperMethod")
-    @Override
     public @NotNull ItemBuilder clone() {
         ItemBuilderImpl builder = new ItemBuilderImpl(this.delegate.copy());
 
@@ -308,5 +274,9 @@ public class ItemBuilderImpl implements ItemBuilder {
 
     public @NotNull ItemStack delegate() {
         return this.delegate;
+    }
+
+    public @NotNull Object2BooleanMap<ItemFlag> flags() {
+        return this.flags;
     }
 }

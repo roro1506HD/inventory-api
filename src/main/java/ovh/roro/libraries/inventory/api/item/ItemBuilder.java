@@ -1,6 +1,5 @@
 package ovh.roro.libraries.inventory.api.item;
 
-import net.minecraft.nbt.Tag;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
@@ -51,15 +50,16 @@ public interface ItemBuilder {
 
     int enchant(@NotNull Enchantment enchantment);
 
-    /**
-     * Must be called after everything else, flags depend on other aspects of the item
-     * @param flags The flags to hide
-     * @return this
-     */
     @Contract("_ -> this")
-    @NotNull ItemBuilder flag(@NotNull ItemFlag @NotNull ... flags);
+    @NotNull ItemBuilder removeEnchant(@NotNull Enchantment enchantment);
+
+    @Contract("_ -> this")
+    @NotNull ItemBuilder flags(@NotNull ItemFlag @NotNull ... flags);
 
     boolean flag(@NotNull ItemFlag flag);
+
+    @Contract("_ -> this")
+    @NotNull ItemBuilder removeFlags(@NotNull ItemFlag @NotNull ... flags);
 
     @Contract("_ -> this")
     @NotNull ItemBuilder hideTooltip(boolean hide);
