@@ -45,12 +45,16 @@ public class ItemBuilderImpl implements ItemBuilder {
     private @NotNull Translation @Nullable [] description;
 
     public ItemBuilderImpl(@NotNull ItemStack delegate) {
-        this.delegate = delegate;
-        this.flags = new Object2BooleanArrayMap<>();
+        this(delegate, new Object2BooleanArrayMap<>());
     }
 
     public ItemBuilderImpl(@NotNull Material material, int amount) {
         this(new ItemStack(CraftMagicNumbers.getItem(material), amount));
+    }
+
+    private ItemBuilderImpl(@NotNull ItemStack delegate, @NotNull Object2BooleanMap<ItemFlag> flags) {
+        this.delegate = delegate;
+        this.flags = flags;
     }
 
     @Override
@@ -264,7 +268,10 @@ public class ItemBuilderImpl implements ItemBuilder {
 
     @SuppressWarnings("MethodDoesntCallSuperMethod")
     public @NotNull ItemBuilder clone() {
-        ItemBuilderImpl builder = new ItemBuilderImpl(this.delegate.copy());
+        ItemBuilderImpl builder = new ItemBuilderImpl(
+                this.delegate.copy(),
+                new Object2BooleanArrayMap<>(this.flags)
+        );
 
         builder.name = this.name;
         builder.description = this.description;
