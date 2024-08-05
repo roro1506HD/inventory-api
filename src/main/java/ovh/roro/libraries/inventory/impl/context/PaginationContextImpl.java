@@ -23,14 +23,14 @@ public class PaginationContextImpl<T, U, V extends InventoryPlayerHolder> implem
     private int maxPage;
     private int currentPage;
 
-    public PaginationContextImpl(int elementsPerPage, @NotNull PageableInventory<T, U, V> inventory, @Nullable T inventoryValue) {
+    public PaginationContextImpl(int elementsPerPage, @NotNull PageableInventory<T, U, V> inventory, @Nullable T inventoryValue, int page) {
         this.elementsPerPage = elementsPerPage;
         this.elements = new ArrayList<>();
         this.currentElements = new ArrayList<>(elementsPerPage);
 
         this.inventory = inventory;
         this.inventoryValue = inventoryValue;
-        this.currentPage = -1;
+        this.currentPage = page;
     }
 
     @Override

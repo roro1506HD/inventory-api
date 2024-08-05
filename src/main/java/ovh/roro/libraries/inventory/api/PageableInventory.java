@@ -15,4 +15,6 @@ public interface PageableInventory<T, U, V extends InventoryPlayerHolder> extend
 
     void openPageable(@NotNull V player, @Nullable T value);
 
+    void openPageable(@NotNull V player, @Nullable T value, int page);
+
 }

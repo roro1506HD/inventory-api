@@ -99,9 +99,14 @@ public class PageableInventoryImpl<T, U, V extends InventoryPlayerHolder> extend
 
     @Override
     public void openPageable(@NotNull V player, @Nullable T value) {
+        this.openPageable(player, value, 0);
+    }
+
+    @Override
+    public void openPageable(@NotNull V player, @Nullable T value, int page) {
         Preconditions.checkArgument(this.instance().rows() > 2, "Pageable inventories cannot be under 3 rows");
 
-        PaginationContextImpl<T, U, V> context = new PaginationContextImpl<>(this.instance().elementsSlots().length, this, value);
+        PaginationContextImpl<T, U, V> context = new PaginationContextImpl<>(this.instance().elementsSlots().length, this, value, page);
 
         this.inventoryManager.openInventory(this, player, context);
     }
