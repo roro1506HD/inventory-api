@@ -11,6 +11,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.server.level.ServerPlayer;
@@ -388,10 +389,16 @@ public class InventoryManagerImpl implements InventoryManager {
 
             for (Translation translation : description) {
                 net.kyori.adventure.text.Component translatedComponent = this.languageManager.translate(player.language(), translation);
+                Component vanillaTranslatedComponent = PaperAdventure.asVanilla(translatedComponent);
 
-                Component lastComponent = this.splitAndCollectNewlines(PaperAdventure.asVanilla(translatedComponent), null, component -> {
-                    lore.add(this.removeDefaultItalic(component));
-                });
+                Component lastComponent = this.splitAndCollectNewlines(
+                        vanillaTranslatedComponent,
+                        vanillaTranslatedComponent.getStyle(),
+                        null,
+                        component -> {
+                            lore.add(this.removeDefaultItalic(component));
+                        }
+                );
 
                 if (lastComponent != null) {
                     lore.add(this.removeDefaultItalic(lastComponent));
@@ -484,6 +491,7 @@ public class InventoryManagerImpl implements InventoryManager {
 
     private @Nullable MutableComponent splitAndCollectNewlines(
             @NotNull Component component,
+            @NotNull Style componentStyle,
             @Nullable MutableComponent currentComponent,
             @NotNull Consumer<net.minecraft.network.chat.Component> consumer
     ) {
@@ -495,7 +503,7 @@ public class InventoryManagerImpl implements InventoryManager {
             for (int i = 0; i < lines.length; i++) {
                 String line = lines[i];
 
-                currentComponent = this.setOrAppend(currentComponent, Component.literal(line).withStyle(component.getStyle()));
+                currentComponent = this.setOrAppend(currentComponent, Component.literal(line).withStyle(componentStyle));
 
                 if (endsWithNewLine || i != lines.length - 1) {
                     consumer.accept(currentComponent);
@@ -503,11 +511,11 @@ public class InventoryManagerImpl implements InventoryManager {
                 }
             }
         } else {
-            currentComponent = this.setOrAppend(currentComponent, MutableComponent.create(component.getContents()).withStyle(component.getStyle()));
+            currentComponent = this.setOrAppend(currentComponent, MutableComponent.create(component.getContents()).withStyle(componentStyle));
         }
 
         for (net.minecraft.network.chat.Component sibling : component.getSiblings()) {
-            currentComponent = this.splitAndCollectNewlines(sibling, currentComponent, consumer);
+            currentComponent = this.splitAndCollectNewlines(sibling, sibling.getStyle().applyTo(componentStyle), currentComponent, consumer);
         }
 
         return currentComponent;
