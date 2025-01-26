@@ -11,13 +11,13 @@ import net.minecraft.util.Unit;
 import net.minecraft.world.item.AdventureModePredicate;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.armortrim.ArmorTrim;
 import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.item.component.Unbreakable;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -176,7 +176,7 @@ public class ItemBuilderImpl implements ItemBuilder {
             case HIDE_ARMOR_TRIM -> {
                 ArmorTrim trim = this.delegate.get(DataComponents.TRIM);
 
-                yield trim != null && !trim.showInTooltip;
+                yield trim != null && !trim.showInTooltip();
             }
             case HIDE_STORED_ENCHANTS -> {
                 ItemEnchantments enchantments = this.delegate.get(DataComponents.STORED_ENCHANTMENTS);

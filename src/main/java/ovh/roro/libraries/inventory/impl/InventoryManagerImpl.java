@@ -21,13 +21,13 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.item.AdventureModePredicate;
-import net.minecraft.world.item.armortrim.ArmorTrim;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.item.component.DyedItemColor;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.component.ItemLore;
 import net.minecraft.world.item.component.Unbreakable;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -421,17 +421,8 @@ public class InventoryManagerImpl implements InventoryManager {
                 case HIDE_ATTRIBUTES -> {
                     ItemAttributeModifiers currentModifiers = delegate.get(DataComponents.ATTRIBUTE_MODIFIERS);
 
-                    if (currentModifiers == null) {
-                        if (!entry.getBooleanValue()) {
-                            break;
-                        }
-
-                        //noinspection deprecation
-                        currentModifiers = delegate.getItem().getDefaultAttributeModifiers();
-
-                        if (currentModifiers == ItemAttributeModifiers.EMPTY) {
-                            break;
-                        }
+                    if (currentModifiers == null || currentModifiers == ItemAttributeModifiers.EMPTY) {
+                        break;
                     }
 
                     delegate.set(DataComponents.ATTRIBUTE_MODIFIERS, currentModifiers.withTooltip(!entry.getBooleanValue()));
