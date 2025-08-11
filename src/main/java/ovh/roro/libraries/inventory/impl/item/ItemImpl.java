@@ -2,7 +2,6 @@ package ovh.roro.libraries.inventory.impl.item;
 
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.ApiStatus;
@@ -98,7 +97,7 @@ public class ItemImpl<T, U extends InventoryPlayerHolder> implements Item<T, U> 
 
         CompoundTag tag = Objects.requireNonNull(itemStack.get(DataComponents.CUSTOM_DATA)).copyTag();
 
-        return tag.contains("inventory_api_item", Tag.TAG_INT) && tag.getInt("inventory_api_item") == this.id;
+        return tag.getInt("inventory_api_item").filter(id -> id == this.id).isPresent();
     }
 
     public int id() {

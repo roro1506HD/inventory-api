@@ -4,57 +4,50 @@ import com.google.common.base.Preconditions;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
-import it.unimi.dsi.fastutil.objects.Object2BooleanArrayMap;
-import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
+import io.papermc.paper.adventure.PaperAdventure;
+import net.kyori.adventure.key.Key;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.Unit;
-import net.minecraft.world.item.AdventureModePredicate;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.component.DyedItemColor;
-import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.component.ResolvableProfile;
-import net.minecraft.world.item.component.Unbreakable;
+import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
-import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemFlag;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import ovh.roro.libraries.inventory.api.item.ItemBuilder;
 import ovh.roro.libraries.language.api.Translation;
 
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @ApiStatus.Internal
 public class ItemBuilderImpl implements ItemBuilder {
 
     private final @NotNull ItemStack delegate;
-    private final @NotNull Object2BooleanMap<ItemFlag> flags;
 
     private @Nullable Translation name;
     private @NotNull Translation @Nullable [] description;
 
     public ItemBuilderImpl(@NotNull ItemStack delegate) {
-        this(delegate, new Object2BooleanArrayMap<>());
+        this.delegate = delegate;
     }
 
     public ItemBuilderImpl(@NotNull Material material, int amount) {
         this(new ItemStack(CraftMagicNumbers.getItem(material), amount));
-    }
-
-    private ItemBuilderImpl(@NotNull ItemStack delegate, @NotNull Object2BooleanMap<ItemFlag> flags) {
-        this.delegate = delegate;
-        this.flags = flags;
     }
 
     @Override
@@ -127,88 +120,139 @@ public class ItemBuilderImpl implements ItemBuilder {
     }
 
     @Override
-    public @NotNull ItemBuilder flags(@NotNull ItemFlag @NotNull ... flags) {
-        for (ItemFlag flag : flags) {
-            this.flags.put(flag, true);
-        }
-
-        return this;
-    }
-
-    @Override
-    public boolean flag(@NotNull ItemFlag flag) {
-        if (this.flags.containsKey(flag)) {
-            return this.flags.getBoolean(flag);
-        }
-
-        return switch (flag) {
-            case HIDE_ENCHANTS -> {
-                ItemEnchantments enchantments = this.delegate.get(DataComponents.ENCHANTMENTS);
-
-                yield enchantments != null && !enchantments.showInTooltip;
-            }
-            case HIDE_ATTRIBUTES -> {
-                ItemAttributeModifiers currentModifiers = this.delegate.get(DataComponents.ATTRIBUTE_MODIFIERS);
-
-                yield currentModifiers != null && !currentModifiers.showInTooltip();
-            }
-            case HIDE_UNBREAKABLE -> {
-                Unbreakable unbreakable = this.delegate.get(DataComponents.UNBREAKABLE);
-
-                yield unbreakable != null && !unbreakable.showInTooltip();
-            }
-            case HIDE_DESTROYS -> {
-                AdventureModePredicate predicate = this.delegate.get(DataComponents.CAN_BREAK);
-
-                yield predicate != null && !predicate.showInTooltip();
-            }
-            case HIDE_PLACED_ON -> {
-                AdventureModePredicate predicate = this.delegate.get(DataComponents.CAN_PLACE_ON);
-
-                yield predicate != null && !predicate.showInTooltip();
-            }
-            case HIDE_ADDITIONAL_TOOLTIP -> this.delegate.has(DataComponents.HIDE_ADDITIONAL_TOOLTIP);
-            case HIDE_DYE -> {
-                DyedItemColor color = this.delegate.get(DataComponents.DYED_COLOR);
-
-                yield color != null && !color.showInTooltip();
-            }
-            case HIDE_ARMOR_TRIM -> {
-                ArmorTrim trim = this.delegate.get(DataComponents.TRIM);
-
-                yield trim != null && !trim.showInTooltip();
-            }
-            case HIDE_STORED_ENCHANTS -> {
-                ItemEnchantments enchantments = this.delegate.get(DataComponents.STORED_ENCHANTMENTS);
-
-                yield enchantments != null && enchantments.showInTooltip;
-            }
-        };
-    }
-
-    @Override
-    public @NotNull ItemBuilder removeFlags(@NotNull ItemFlag @NotNull ... flags) {
-        for (ItemFlag flag : flags) {
-            this.flags.put(flag, false);
-        }
-
-        return this;
-    }
-
-    @Override
     public @NotNull ItemBuilder hideTooltip(boolean hide) {
         if (hide) {
-            this.delegate.set(DataComponents.HIDE_TOOLTIP, Unit.INSTANCE);
+            TooltipDisplay display = this.delegate.get(DataComponents.TOOLTIP_DISPLAY);
+
+            if (display == null) {
+                display = new TooltipDisplay(true, new LinkedHashSet<>());
+            } else {
+                display = new TooltipDisplay(true, display.hiddenComponents());
+            }
+
+            this.delegate.set(DataComponents.TOOLTIP_DISPLAY, display);
         } else {
-            this.delegate.remove(DataComponents.HIDE_TOOLTIP);
+            TooltipDisplay display = this.delegate.get(DataComponents.TOOLTIP_DISPLAY);
+
+            if (display != null && display.hideTooltip()) {
+                if (display.hiddenComponents().isEmpty()) {
+                    this.delegate.remove(DataComponents.TOOLTIP_DISPLAY);
+                } else {
+                    this.delegate.set(DataComponents.TOOLTIP_DISPLAY, new TooltipDisplay(false, display.hiddenComponents()));
+                }
+            }
         }
 
         return this;
+    }
+
+    @Override
+    public @NotNull ItemBuilder hideComponents(io.papermc.paper.datacomponent.@NotNull DataComponentType... componentTypes) {
+        Key[] componentKeys = new Key[componentTypes.length];
+
+        for (int i = 0; i < componentTypes.length; i++) {
+            componentKeys[i] = componentTypes[i].key();
+        }
+
+        return this.hideComponents(componentKeys);
+    }
+
+    @Override
+    public @NotNull ItemBuilder hideComponents(@NotNull Key... componentKeys) {
+        TooltipDisplay display = this.delegate.get(DataComponents.TOOLTIP_DISPLAY);
+        Set<DataComponentType<?>> vanillaTypes = new HashSet<>();
+
+        for (Key componentKey : componentKeys) {
+            DataComponentType<?> vanillaType = BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(PaperAdventure.asVanilla(componentKey));
+
+            if (vanillaType == null) {
+                throw new IllegalArgumentException("Component key does not match any component: " + componentKey);
+            }
+
+            vanillaTypes.add(vanillaType);
+        }
+
+        if (display == null) {
+            display = new TooltipDisplay(false, new LinkedHashSet<>());
+            display.hiddenComponents().addAll(vanillaTypes);
+        } else {
+            display = new TooltipDisplay(display.hideTooltip(), new LinkedHashSet<>(display.hiddenComponents()));
+            display.hiddenComponents().addAll(vanillaTypes);
+        }
+
+        this.delegate.set(DataComponents.TOOLTIP_DISPLAY, display);
+
+        return this;
+    }
+
+    @Override
+    public @NotNull ItemBuilder showComponents(io.papermc.paper.datacomponent.@NotNull DataComponentType... componentTypes) {
+        Key[] componentKeys = new Key[componentTypes.length];
+
+        for (int i = 0; i < componentTypes.length; i++) {
+            componentKeys[i] = componentTypes[i].key();
+        }
+
+        return this.showComponents(componentKeys);
+    }
+
+    @Override
+    public @NotNull ItemBuilder showComponents(@NotNull Key... componentKeys) {
+        TooltipDisplay display = this.delegate.get(DataComponents.TOOLTIP_DISPLAY);
+
+        if (display == null) {
+            return this;
+        }
+
+        Set<DataComponentType<?>> vanillaTypes = new HashSet<>();
+
+        for (Key componentKey : componentKeys) {
+            DataComponentType<?> vanillaType = BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(PaperAdventure.asVanilla(componentKey));
+
+            if (vanillaType == null) {
+                throw new IllegalArgumentException("Component key does not match any component: " + componentKey);
+            }
+
+            vanillaTypes.add(vanillaType);
+        }
+
+        display = new TooltipDisplay(display.hideTooltip(), new LinkedHashSet<>(display.hiddenComponents()));
+        display.hiddenComponents().removeAll(vanillaTypes);
+
+        if (display.hiddenComponents().isEmpty() && !display.hideTooltip()) {
+            this.delegate.remove(DataComponents.TOOLTIP_DISPLAY);
+        } else {
+            this.delegate.set(DataComponents.TOOLTIP_DISPLAY, display);
+        }
+
+        return this;
+    }
+
+    @Override
+    public boolean isComponentHidden(io.papermc.paper.datacomponent.@NotNull DataComponentType componentType) {
+        return this.isComponentHidden(componentType.key());
+    }
+
+    @Override
+    public boolean isComponentHidden(@NotNull Key componentKey) {
+        TooltipDisplay display = this.delegate.get(DataComponents.TOOLTIP_DISPLAY);
+
+        if (display == null) {
+            return false;
+        }
+
+        DataComponentType<?> vanillaType = BuiltInRegistries.DATA_COMPONENT_TYPE.getValue(PaperAdventure.asVanilla(componentKey));
+
+        if (vanillaType == null) {
+            throw new IllegalArgumentException("Component key does not match any components: " + componentKey);
+        }
+
+        return display.hiddenComponents().contains(vanillaType);
     }
 
     @Override
     public @NotNull ItemBuilder unbreakable(boolean unbreakable) {
-        this.delegate.set(DataComponents.UNBREAKABLE, new Unbreakable(true));
+        this.delegate.set(DataComponents.UNBREAKABLE, Unit.INSTANCE);
 
         return this;
     }
@@ -268,10 +312,7 @@ public class ItemBuilderImpl implements ItemBuilder {
 
     @SuppressWarnings("MethodDoesntCallSuperMethod")
     public @NotNull ItemBuilder clone() {
-        ItemBuilderImpl builder = new ItemBuilderImpl(
-                this.delegate.copy(),
-                new Object2BooleanArrayMap<>(this.flags)
-        );
+        ItemBuilderImpl builder = new ItemBuilderImpl(this.delegate.copy());
 
         builder.name = this.name;
         builder.description = this.description;
@@ -281,9 +322,5 @@ public class ItemBuilderImpl implements ItemBuilder {
 
     public @NotNull ItemStack delegate() {
         return this.delegate;
-    }
-
-    public @NotNull Object2BooleanMap<ItemFlag> flags() {
-        return this.flags;
     }
 }

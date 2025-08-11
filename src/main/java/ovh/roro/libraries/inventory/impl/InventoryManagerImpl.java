@@ -4,36 +4,26 @@ import com.google.common.base.Preconditions;
 import io.papermc.paper.adventure.PaperAdventure;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
-import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import net.minecraft.Util;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.util.Unit;
 import net.minecraft.world.Container;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.inventory.MenuType;
-import net.minecraft.world.item.AdventureModePredicate;
 import net.minecraft.world.item.component.CustomData;
-import net.minecraft.world.item.component.DyedItemColor;
-import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.minecraft.world.item.component.ItemLore;
-import net.minecraft.world.item.component.Unbreakable;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
-import net.minecraft.world.item.equipment.trim.ArmorTrim;
 import org.bukkit.Material;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
-import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
@@ -300,11 +290,8 @@ public class InventoryManagerImpl implements InventoryManager {
 
         CompoundTag tag = itemStack.get(DataComponents.CUSTOM_DATA).copyTag();
 
-        if (!tag.contains("inventory_api_item", Tag.TAG_INT)) {
-            return Optional.empty();
-        }
-
-        return Optional.ofNullable(this.itemById.get(tag.getInt("inventory_api_item")));
+        return tag.getInt("inventory_api_item")
+                .map(id -> this.itemById.get(id.intValue()));
     }
 
     @Override
@@ -407,73 +394,6 @@ public class InventoryManagerImpl implements InventoryManager {
 
             if (!lore.isEmpty()) {
                 delegate.set(DataComponents.LORE, new ItemLore(lore));
-            }
-        }
-
-        // The boolean is true when it should be hidden
-        for (Object2BooleanMap.Entry<ItemFlag> entry : clonedBuilder.flags().object2BooleanEntrySet()) {
-            switch (entry.getKey()) {
-                case HIDE_ENCHANTS -> {
-                    if (delegate.isEnchanted()) {
-                        delegate.set(DataComponents.ENCHANTMENTS, delegate.getEnchantments().withTooltip(!entry.getBooleanValue()));
-                    }
-                }
-                case HIDE_ATTRIBUTES -> {
-                    ItemAttributeModifiers currentModifiers = delegate.get(DataComponents.ATTRIBUTE_MODIFIERS);
-
-                    if (currentModifiers == null || currentModifiers == ItemAttributeModifiers.EMPTY) {
-                        break;
-                    }
-
-                    delegate.set(DataComponents.ATTRIBUTE_MODIFIERS, currentModifiers.withTooltip(!entry.getBooleanValue()));
-                }
-                case HIDE_UNBREAKABLE -> {
-                    if (delegate.has(DataComponents.UNBREAKABLE)) {
-                        delegate.set(DataComponents.UNBREAKABLE, new Unbreakable(!entry.getBooleanValue()));
-                    }
-                }
-                case HIDE_DESTROYS -> {
-                    AdventureModePredicate predicate = delegate.get(DataComponents.CAN_BREAK);
-
-                    if (predicate != null) {
-                        delegate.set(DataComponents.CAN_BREAK, predicate.withTooltip(!entry.getBooleanValue()));
-                    }
-                }
-                case HIDE_PLACED_ON -> {
-                    AdventureModePredicate predicate = delegate.get(DataComponents.CAN_PLACE_ON);
-
-                    if (predicate != null) {
-                        delegate.set(DataComponents.CAN_PLACE_ON, predicate.withTooltip(!entry.getBooleanValue()));
-                    }
-                }
-                case HIDE_ADDITIONAL_TOOLTIP -> {
-                    if (entry.getBooleanValue()) {
-                        delegate.set(DataComponents.HIDE_ADDITIONAL_TOOLTIP, Unit.INSTANCE);
-                    } else {
-                        delegate.remove(DataComponents.HIDE_ADDITIONAL_TOOLTIP);
-                    }
-                }
-                case HIDE_DYE -> {
-                    DyedItemColor color = delegate.get(DataComponents.DYED_COLOR);
-
-                    if (color != null) {
-                        delegate.set(DataComponents.DYED_COLOR, color.withTooltip(!entry.getBooleanValue()));
-                    }
-                }
-                case HIDE_ARMOR_TRIM -> {
-                    ArmorTrim trim = delegate.get(DataComponents.TRIM);
-
-                    if (trim != null) {
-                        delegate.set(DataComponents.TRIM, trim.withTooltip(!entry.getBooleanValue()));
-                    }
-                }
-                case HIDE_STORED_ENCHANTS -> {
-                    ItemEnchantments enchantments = delegate.get(DataComponents.STORED_ENCHANTMENTS);
-
-                    if (enchantments != null) {
-                        delegate.set(DataComponents.STORED_ENCHANTMENTS, enchantments.withTooltip(!entry.getBooleanValue()));
-                    }
-                }
             }
         }
 
