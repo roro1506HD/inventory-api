@@ -186,6 +186,29 @@ public class ItemBuilderImpl implements ItemBuilder {
     }
 
     @Override
+    public @NotNull ItemBuilder hideAllComponents() {
+        TooltipDisplay display = this.delegate.get(DataComponents.TOOLTIP_DISPLAY);
+
+        if (display == null) {
+            display = new TooltipDisplay(true, new LinkedHashSet<>());
+
+            for (DataComponentType<?> componentType : BuiltInRegistries.DATA_COMPONENT_TYPE) {
+                display.hiddenComponents().add(componentType);
+            }
+        } else {
+            display = new TooltipDisplay(display.hideTooltip(), new LinkedHashSet<>());
+
+            for (DataComponentType<?> componentType : BuiltInRegistries.DATA_COMPONENT_TYPE) {
+                display.hiddenComponents().add(componentType);
+            }
+        }
+
+        this.delegate.set(DataComponents.TOOLTIP_DISPLAY, display);
+
+        return this;
+    }
+
+    @Override
     public @NotNull ItemBuilder showComponents(io.papermc.paper.datacomponent.@NotNull DataComponentType... componentTypes) {
         Key[] componentKeys = new Key[componentTypes.length];
 
@@ -223,6 +246,21 @@ public class ItemBuilderImpl implements ItemBuilder {
             this.delegate.remove(DataComponents.TOOLTIP_DISPLAY);
         } else {
             this.delegate.set(DataComponents.TOOLTIP_DISPLAY, display);
+        }
+
+        return this;
+    }
+
+    @Override
+    public @NotNull ItemBuilder showAllComponents() {
+        TooltipDisplay display = this.delegate.get(DataComponents.TOOLTIP_DISPLAY);
+
+        if (display != null) {
+            if (display.hideTooltip()) {
+                this.delegate.set(DataComponents.TOOLTIP_DISPLAY, new TooltipDisplay(true, new LinkedHashSet<>()));
+            } else {
+                this.delegate.remove(DataComponents.TOOLTIP_DISPLAY);
+            }
         }
 
         return this;

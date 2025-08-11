@@ -62,12 +62,18 @@ public interface ItemBuilder {
 
     @Contract("_ -> this")
     @NotNull ItemBuilder hideComponents(@NotNull Key... componentKeys);
+    
+    @Contract(" -> this")
+    @NotNull ItemBuilder hideAllComponents();
 
     @Contract("_ -> this")
     @NotNull ItemBuilder showComponents(@NotNull DataComponentType... componentTypes);
 
     @Contract("_ -> this")
     @NotNull ItemBuilder showComponents(@NotNull Key... componentKeys);
+
+    @Contract(" -> this")
+    @NotNull ItemBuilder showAllComponents();
 
     boolean isComponentHidden(@NotNull DataComponentType componentType);
 
