@@ -11,7 +11,6 @@ import ovh.roro.libraries.inventory.api.item.Item;
 import ovh.roro.libraries.inventory.api.item.StaticItem;
 import ovh.roro.libraries.inventory.api.item.defaults.DefaultItemFactory;
 import ovh.roro.libraries.inventory.impl.InventoryManagerImpl;
-import ovh.roro.libraries.language.api.Translation;
 
 @ApiStatus.Internal
 public class DefaultItemFactoryImpl implements DefaultItemFactory {
@@ -34,8 +33,8 @@ public class DefaultItemFactoryImpl implements DefaultItemFactory {
                     @Override
                     public StaticItem load(Material material) throws Exception {
                         return DefaultItemFactoryImpl.this.inventoryManager.createStaticItem(
-                                () -> DefaultItemFactoryImpl.this.inventoryManager.createItemBuilder(material)
-                                        .name(Translation.translation(" "))
+                                () -> DefaultItemFactoryImpl.this.inventoryManager.createItemBuilder(Material.PAPER)
+                                        .overrideModel(material.key())
                                         .hideTooltip(true)
                         );
                     }

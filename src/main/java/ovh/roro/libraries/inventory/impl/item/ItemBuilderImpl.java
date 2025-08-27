@@ -348,6 +348,17 @@ public class ItemBuilderImpl implements ItemBuilder {
         return this;
     }
 
+    @Override
+    public @NotNull ItemBuilder overrideModel(@Nullable Key key) {
+        if (key == null) {
+            this.delegate.set(DataComponents.ITEM_MODEL, this.delegate.getItem().components().get(DataComponents.ITEM_MODEL));
+        } else {
+            this.delegate.set(DataComponents.ITEM_MODEL, PaperAdventure.asVanilla(key));
+        }
+
+        return this;
+    }
+
     @SuppressWarnings("MethodDoesntCallSuperMethod")
     public @NotNull ItemBuilder clone() {
         ItemBuilderImpl builder = new ItemBuilderImpl(this.delegate.copy());

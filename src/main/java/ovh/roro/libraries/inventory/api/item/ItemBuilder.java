@@ -95,6 +95,9 @@ public interface ItemBuilder {
     @Contract("_, _ -> this")
     @NotNull ItemBuilder skull(@NotNull String texture, @NotNull String signature);
 
+    @Contract("_ -> this")
+    @NotNull ItemBuilder overrideModel(@Nullable Key key);
+
     @NotNull ItemBuilder clone();
 
 }
