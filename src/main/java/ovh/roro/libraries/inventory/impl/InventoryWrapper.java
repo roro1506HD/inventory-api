@@ -16,13 +16,13 @@ import org.slf4j.LoggerFactory;
 import ovh.roro.libraries.inventory.api.InventoryPlayerHolder;
 import ovh.roro.libraries.inventory.api.instance.InventoryInstance;
 import ovh.roro.libraries.inventory.api.item.Item;
+import ovh.roro.libraries.inventory.api.item.ItemBuilder;
 import ovh.roro.libraries.inventory.api.slot.Slot;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
-import java.util.Objects;
 
 @ApiStatus.Internal
 public class InventoryWrapper<T, U extends InventoryInstance<T, V>, V extends InventoryPlayerHolder> implements Container {
@@ -87,9 +87,14 @@ public class InventoryWrapper<T, U extends InventoryInstance<T, V>, V extends In
 
         if (slot.hash() != this.hash[i]) {
             try {
-                ItemStack stack = this.inventoryManager.toMinecraftStack(this.player, slot.createItem(this.player, this.value), slot.item());
+                ItemBuilder item = slot.createItem(this.player, this.value);
+                ItemStack stack = ItemStack.EMPTY;
 
-                this.itemsCache.set(i, Objects.requireNonNullElse(stack, ItemStack.EMPTY));
+                if (item != null) {
+                    stack = this.inventoryManager.toMinecraftStack(this.player.language(), item, slot.item());;
+                }
+
+                this.itemsCache.set(i, stack);
                 this.hash[i] = slot.hash();
             } catch (Exception ex) {
                 InventoryWrapper.LOGGER.error("An error occurred while creating minecraft stack", ex);

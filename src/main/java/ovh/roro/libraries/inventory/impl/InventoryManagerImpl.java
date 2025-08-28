@@ -60,6 +60,7 @@ import ovh.roro.libraries.inventory.impl.pageable.PageableInventoryImpl;
 import ovh.roro.libraries.inventory.impl.pageable.item.NextItem;
 import ovh.roro.libraries.inventory.impl.pageable.item.PreviousItem;
 import ovh.roro.libraries.inventory.util.StringUtil;
+import ovh.roro.libraries.language.api.Language;
 import ovh.roro.libraries.language.api.LanguageManager;
 import ovh.roro.libraries.language.api.Translation;
 import ovh.roro.libraries.language.util.LibraryInstanceLoader;
@@ -353,10 +354,15 @@ public class InventoryManagerImpl implements InventoryManager {
         return new ItemBuilderImpl(itemStack);
     }
 
-    @SuppressWarnings("ConstantConditions")
     @Override
     public @NotNull <T, U extends InventoryPlayerHolder> net.minecraft.world.item.ItemStack toMinecraftStack(@NotNull Item<T, U> item, @NotNull U player, @Nullable T value) {
-        return this.toMinecraftStack(player, item.instance().buildItem(player, value), item);
+        return this.toMinecraftStack(player.language(), item.instance().buildItem(player, value), item);
+    }
+
+    @NotNull
+    @Override
+    public net.minecraft.world.item.ItemStack toMinecraftStack(@NotNull ItemBuilder builder, @NotNull Language language) {
+        return this.toMinecraftStack(language, builder, null);
     }
 
     @Override
@@ -364,21 +370,24 @@ public class InventoryManagerImpl implements InventoryManager {
         return CraftItemStack.asCraftMirror(this.toMinecraftStack(item, player, value));
     }
 
-    public @Nullable net.minecraft.world.item.ItemStack toMinecraftStack(@NotNull InventoryPlayerHolder player, @Nullable ItemBuilder builder, @Nullable Item item) {
-        if (builder == null || item == null) {
-            return null;
-        }
+    @Override
+    public @NotNull ItemStack toBukkitStack(@NotNull ItemBuilder builder, @NotNull Language language) {
+        return CraftItemStack.asCraftMirror(this.toMinecraftStack(builder, language));
+    }
 
+    public @NotNull net.minecraft.world.item.ItemStack toMinecraftStack(@NotNull Language language, @NotNull ItemBuilder builder, @Nullable Item item) {
         ItemBuilderImpl clonedBuilder = (ItemBuilderImpl) builder.clone();
         net.minecraft.world.item.ItemStack delegate = clonedBuilder.delegate();
 
-        CustomData.update(DataComponents.CUSTOM_DATA, delegate, compoundTag -> {
-            compoundTag.putInt("inventory_api_item", ((ItemImpl) item).id());
-        });
+        if (item != null) {
+            CustomData.update(DataComponents.CUSTOM_DATA, delegate, compoundTag -> {
+                compoundTag.putInt("inventory_api_item", ((ItemImpl) item).id());
+            });
+        }
 
         Translation name = clonedBuilder.name();
         if (name != null) {
-            delegate.set(DataComponents.CUSTOM_NAME, this.removeDefaultItalic(PaperAdventure.asVanilla(this.languageManager.translate(player.language(), name))));
+            delegate.set(DataComponents.CUSTOM_NAME, this.removeDefaultItalic(PaperAdventure.asVanilla(this.languageManager.translate(language, name))));
         }
 
         Translation[] description = clonedBuilder.description();
@@ -386,7 +395,7 @@ public class InventoryManagerImpl implements InventoryManager {
             List<Component> lore = new ArrayList<>();
 
             for (Translation translation : description) {
-                net.kyori.adventure.text.Component translatedComponent = this.languageManager.translate(player.language(), translation);
+                net.kyori.adventure.text.Component translatedComponent = this.languageManager.translate(language, translation);
                 Component vanillaTranslatedComponent = PaperAdventure.asVanilla(translatedComponent);
 
                 Component lastComponent = this.splitAndCollectNewlines(

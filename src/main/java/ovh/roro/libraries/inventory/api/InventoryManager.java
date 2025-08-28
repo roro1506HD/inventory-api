@@ -16,6 +16,7 @@ import ovh.roro.libraries.inventory.api.item.ItemBuilder;
 import ovh.roro.libraries.inventory.api.item.StaticItem;
 import ovh.roro.libraries.inventory.api.item.defaults.DefaultItemFactory;
 import ovh.roro.libraries.inventory.impl.InventoryManagerImpl;
+import ovh.roro.libraries.language.api.Language;
 
 import java.util.List;
 import java.util.Optional;
@@ -72,7 +73,11 @@ public interface InventoryManager {
 
     @NotNull <T, U extends InventoryPlayerHolder> net.minecraft.world.item.ItemStack toMinecraftStack(@NotNull Item<T, U> item, @NotNull U player, @Nullable T value);
 
+    @NotNull net.minecraft.world.item.ItemStack toMinecraftStack(@NotNull ItemBuilder builder, @NotNull Language language);
+
     @NotNull <T, U extends InventoryPlayerHolder> ItemStack toBukkitStack(@NotNull Item<T, U> item, @NotNull U player, @Nullable T value);
+
+    @NotNull ItemStack toBukkitStack(@NotNull ItemBuilder builder, @NotNull Language language);
 
     @NotNull DefaultItemFactory defaultItemFactory();
 
