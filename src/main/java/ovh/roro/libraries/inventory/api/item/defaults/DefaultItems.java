@@ -1,5 +1,6 @@
 package ovh.roro.libraries.inventory.api.item.defaults;
 
+import net.kyori.adventure.key.Key;
 import org.bukkit.Material;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -12,6 +13,10 @@ public interface DefaultItems {
 
     static @NotNull StaticItem separator(@NotNull Material material) {
         return InventoryManager.inventoryManager().defaultItemFactory().separator(material);
+    }
+
+    static @NotNull StaticItem separator(@NotNull Key key) {
+        return InventoryManager.inventoryManager().defaultItemFactory().separator(key);
     }
 
     static @NotNull Item<Object, ?> back() {
