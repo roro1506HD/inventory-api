@@ -23,6 +23,7 @@ import org.bukkit.Material;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
+import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -262,6 +263,11 @@ public class InventoryManagerImpl implements InventoryManager {
     }
 
     @Override
+    public boolean isRegisteredInventory(org.bukkit.inventory.@NotNull Inventory inventory) {
+        return ((CraftInventory) inventory).getInventory() instanceof InventoryWrapper<?, ?, ?>;
+    }
+
+    @Override
     public <T extends InventoryPlayerHolder> @NotNull List<T> getInventoryViewers(@NotNull Inventory<?, ?, T> inventory) {
         List<T> players = new ArrayList<>();
 
@@ -351,6 +357,11 @@ public class InventoryManagerImpl implements InventoryManager {
     @Override
     public @NotNull <T, U extends InventoryPlayerHolder> net.minecraft.world.item.ItemStack toMinecraftStack(@NotNull Item<T, U> item, @NotNull U player, @Nullable T value) {
         return this.toMinecraftStack(player, item.instance().buildItem(player, value), item);
+    }
+
+    @Override
+    public @NotNull <T, U extends InventoryPlayerHolder> ItemStack toBukkitStack(@NotNull Item<T, U> item, @NotNull U player, @Nullable T value) {
+        return CraftItemStack.asCraftMirror(this.toMinecraftStack(item, player, value));
     }
 
     public @Nullable net.minecraft.world.item.ItemStack toMinecraftStack(@NotNull InventoryPlayerHolder player, @Nullable ItemBuilder builder, @Nullable Item item) {

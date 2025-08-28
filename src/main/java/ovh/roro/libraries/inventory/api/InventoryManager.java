@@ -44,6 +44,8 @@ public interface InventoryManager {
 
     void softCloseInventory(@NotNull InventoryPlayerHolder player);
 
+    boolean isRegisteredInventory(@NotNull org.bukkit.inventory.Inventory inventory);
+
     <T extends InventoryPlayerHolder> @NotNull List<T> getInventoryViewers(@NotNull Inventory<?, ?, T> inventory);
 
     @NotNull Optional<Item> parseItem(@Nullable ItemStack itemStack);
@@ -69,6 +71,8 @@ public interface InventoryManager {
     @NotNull ItemBuilder fromLegacy(@NotNull net.minecraft.world.item.ItemStack itemStack);
 
     @NotNull <T, U extends InventoryPlayerHolder> net.minecraft.world.item.ItemStack toMinecraftStack(@NotNull Item<T, U> item, @NotNull U player, @Nullable T value);
+
+    @NotNull <T, U extends InventoryPlayerHolder> ItemStack toBukkitStack(@NotNull Item<T, U> item, @NotNull U player, @Nullable T value);
 
     @NotNull DefaultItemFactory defaultItemFactory();
 
