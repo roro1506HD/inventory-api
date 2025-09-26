@@ -1,6 +1,7 @@
 package ovh.roro.libraries.inventory.impl.item;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMultimap;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
@@ -30,7 +31,6 @@ import ovh.roro.libraries.language.api.Translation;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -321,7 +321,7 @@ public class ItemBuilderImpl implements ItemBuilder {
     public @NotNull ItemBuilder skull(@NotNull Player player) {
         GameProfile gameProfile = ((CraftPlayer) player).getProfile();
 
-        for (Property property : gameProfile.getProperties().get("textures")) {
+        for (Property property : gameProfile.properties().get("textures")) {
             return this.skull(property.value(), Objects.requireNonNull(property.signature()));
         }
 
@@ -332,18 +332,16 @@ public class ItemBuilderImpl implements ItemBuilder {
     public @NotNull ItemBuilder skull(@NotNull String texture, @NotNull String signature) {
         Preconditions.checkState(this.delegate.getItem() == Items.PLAYER_HEAD, "ItemBuilder#skull can only be used on skulls");
 
-        PropertyMap properties = new PropertyMap();
-
-        properties.put("textures", new Property("textures", texture, signature));
-
-        this.delegate.set(
-                DataComponents.PROFILE,
-                new ResolvableProfile(
-                        Optional.empty(),
-                        Optional.of(UUID.randomUUID()),
-                        properties
-                )
+        GameProfile gameProfile = new GameProfile(
+                UUID.randomUUID(),
+                "",
+                new PropertyMap(ImmutableMultimap.of(
+                        "textures",
+                        new Property("textures", texture, signature)
+                ))
         );
+
+        this.delegate.set(DataComponents.PROFILE, ResolvableProfile.createResolved(gameProfile));
 
         return this;
     }
